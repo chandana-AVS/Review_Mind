@@ -1,0 +1,88 @@
+{
+  "pr": 105,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-01-27T11:40:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-01-27T14:30:00Z",
+      "body": "Needs to go through the clock so the date window is testable."
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-01-28T16:05:00Z",
+      "body": "Much better test now."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-01-29T09:50:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t105-1",
+      "path": "app/services/settlement.py",
+      "line": 14,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-01-27T14:25:00Z",
+          "body": "Please use `clock.now()` from `app.utils.clock` here instead of `datetime.utcnow()`. Two reasons. Tests freeze time through the `frozen_clock` fixture, which only works if the code asks the clock; that's why your test has to compute `yesterday` from utcnow itself, and it will fail if CI runs it across midnight. And `utcnow()` returns a naive datetime while `captured_at` is timezone-aware, so the comparison in the repo query will blow up on postgres."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-01-27T15:40:00Z",
+          "body": "Didn't know about the fixture. So the test should use `frozen_clock` and fixed dates instead?"
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-27T15:58:00Z",
+          "body": "Yes. The fixture freezes to 2026-01-15 12:00, so put the factory objects on the 14th and the window is deterministic."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-01-28T11:20:00Z",
+          "body": "Switched to `clock.now()` and rewrote the test with `frozen_clock`."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "412725c3e24f78bb1e0598844692df13f70c1af6"
+    },
+    {
+      "id": "t105-2",
+      "path": "app/services/settlement.py",
+      "line": 6,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-01-27T11:38:00Z",
+          "body": "Imports are out of order here, `app.db` should come before `app.repos`."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-01-27T12:15:00Z",
+          "body": "Let's not spend review comments on import order. ruff and ruff-format run in pre-commit and fix this automatically. Dan, looks like the hook isn't installed on your machine: `pre-commit install` and it'll sort itself out on the next commit."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-01-27T12:40:00Z",
+          "body": "Oops, new laptop. Installed."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "ruff and ruff-format run in pre-commit; formatting isn't a review topic.",
+      "follow_up_commit": null
+    }
+  ]
+}

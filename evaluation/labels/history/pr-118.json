@@ -1,0 +1,23 @@
+{
+  "pr": 118,
+  "threads": {
+    "t118-1": {
+      "convention": "C1",
+      "noise": "N4",
+      "mistake": null,
+      "exception": null,
+      "conflict": "K1",
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t118-2": {
+      "convention": "C1",
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

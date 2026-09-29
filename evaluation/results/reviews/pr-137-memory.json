@@ -1,0 +1,479 @@
+{
+  "pr": 137,
+  "title": "Add refund processing fee",
+  "bank": "reviewmind-acme-payments",
+  "use_memory": true,
+  "created_at": "2026-09-29T13:20:55.648970+00:00",
+  "seconds": {
+    "recall_s": 3.9,
+    "reflect_s": 633.6,
+    "total_s": 637.6
+  },
+  "signals": {
+    "money": [
+      "app/api/refunds.py:4",
+      "app/api/refunds.py:6",
+      "app/api/refunds.py:22",
+      "app/api/refunds.py:23",
+      "app/api/refunds.py:24",
+      "app/api/refunds.py:27",
+      "app/api/schemas.py:23",
+      "app/api/schemas.py:24",
+      "app/services/refund_fees.py:9",
+      "app/services/refund_fees.py:16",
+      "app/services/refund_fees.py:17",
+      "app/services/refund_fees.py:18",
+      "app/services/refund_fees.py:23",
+      "app/services/refund_fees.py:24",
+      "app/services/refund_fees.py:29",
+      "app/services/refund_fees.py:33",
+      "app/services/refund_fees.py:35",
+      "app/services/refund_fees.py:38",
+      "app/services/refund_fees.py:39",
+      "app/services/refund_fees.py:44",
+      "app/services/refund_fees.py:45",
+      "app/services/refund_fees.py:48",
+      "app/services/refund_fees.py:49",
+      "app/services/refund_fees.py:50",
+      "tests/test_refund_fees.py:4",
+      "tests/test_refund_fees.py:16",
+      "tests/test_refund_fees.py:20",
+      "tests/test_refund_fees.py:21",
+      "tests/test_refund_fees.py:23",
+      "tests/test_refund_fees.py:25",
+      "tests/test_refund_fees.py:26",
+      "tests/test_refund_fees.py:27",
+      "tests/test_refund_fees.py:30",
+      "tests/test_refund_fees.py:31",
+      "tests/test_refund_fees.py:33",
+      "tests/test_refund_fees.py:35"
+    ],
+    "endpoint": [
+      "app/api/refunds.py:22"
+    ],
+    "outbound_http": [
+      "app/services/refund_fees.py:3",
+      "app/services/refund_fees.py:20",
+      "tests/test_refund_fees.py:1",
+      "tests/test_refund_fees.py:14"
+    ],
+    "db_session": [
+      "app/services/refund_fees.py:7",
+      "app/services/refund_fees.py:25"
+    ],
+    "errors": [
+      "app/services/refund_fees.py:28",
+      "app/services/refund_fees.py:30"
+    ],
+    "time": [
+      "app/services/refund_fees.py:41"
+    ],
+    "logging": [
+      "app/services/refund_fees.py:44"
+    ],
+    "private_helper": [
+      "app/services/refund_fees.py:48"
+    ]
+  },
+  "recall_probes": [
+    "outbound_http",
+    "retry",
+    "time",
+    "money",
+    "errors",
+    "logging",
+    "db_session",
+    "endpoint",
+    "private_helper",
+    "tests"
+  ],
+  "memories_recalled": 27,
+  "team_brief": [
+    {
+      "rule": "ADR-006: All HTTP calls must use make_client() from app.clients.http instead of direct httpx/requests imports; provides 3s connect timeout, 10s read timeout, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics",
+      "evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-004: All money-moving POST endpoints require @idempotent decorator; endpoints must require Idempotency-Key header, missing key returns 400, duplicates replay cached response (24h TTL in Redis)",
+      "evidence": [
+        {
+          "label": "M19",
+          "memory_id": "ea68cb77-a86b-4f22-abe1-6b723949a3ee",
+          "type": "world",
+          "text": "alice enforced team convention ADR-004 requiring @idempotent decorator on money-moving endpoints in payments-service | When: July 22, 2026 | Involving: alice (reviewer), bob (author) | Money-moving endpoint POST /payouts/convert was missing required decorator",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        },
+        {
+          "label": "M23",
+          "memory_id": "8324cb1c-7a48-4195-ac21-e6f4ab3bd39e",
+          "type": "world",
+          "text": "bob added @idempotent decorator to POST /payouts/convert endpoint after alice's review | When: July 22, 2026 | Involving: bob (author), alice (reviewer, decided acceptance) | To comply with ADR-004 requirement for money-moving endpoints",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Use clock.now() from app.utils.clock instead of datetime.utcnow(); tests use frozen_clock fixture which freezes time to deterministic date, preventing test failures across midnight boundaries; utcnow() returns naive datetime while DB timestamp fields are timezone-aware",
+      "evidence": [
+        {
+          "label": "M11",
+          "memory_id": "23980805-8483-42cc-831b-c1ddf85c45cf",
+          "type": "world",
+          "text": "Acme Payments team enforces use of clock.now() instead of datetime.utcnow() in payments-service; carol required dan to change datetime.utcnow() to clock.now() in PR #120, and bob previously caught the same issue in dan's settlement PR #105 | When: April 29, 2026 | Involving: carol (reviewer, enforced), dan (author), bob (previously enforced in PR #105) | clock.now() is timezone-aware and prevents test flakiness around midnight when freezing time in tests",
+          "document_id": "pr:payments-service:120",
+          "sources": [
+            "PR #120"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-003: Thin API handlers - validate input, call one service function, map results; no DB sessions or queries in handlers; services get session through app.db.session_scope()",
+      "evidence": [
+        {
+          "label": "M2",
+          "memory_id": "de2e47ed-5e72-4025-af7e-0153bfad810c",
+          "type": "world",
+          "text": "Team convention per ADR-003 and CONTRIBUTING: API handlers must be thin - call one service function, service owns session and queries | When: June 03, 2026 | Involving: bob (enforced), erin (applied) | Makes logic reusable from jobs",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        },
+        {
+          "label": "M8",
+          "memory_id": "169c8f5d-093a-4777-b2ad-c5a02a8ac896",
+          "type": "world",
+          "text": "Acme Payments team enforces the architectural pattern that API handlers must call service layer functions, and the service layer owns database sessions (not the handler), as previously enforced in PR #104 | When: May 13, 2026 | Involving: alice (reviewer), carol (author) | Separation of concerns between API layer and data access layer",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Services must raise domain errors (app.errors), not HTTPException; API layer maps domain errors to HTTP status codes; services called from consumers, jobs, workers, CLI where HTTP semantics don't apply",
+      "evidence": [
+        {
+          "label": "M1",
+          "memory_id": "59738600-f211-4d29-bc51-937d41941f5d",
+          "type": "world",
+          "text": "Team convention requires domain errors instead of HTTPException when code is called from non-HTTP contexts like workers; alice enforced this when bob initially used HTTPException(422) in ledger service called from payout worker, bob changed to errors.Conflict | When: May 26, 2026 | Involving: alice (enforcer), bob (author) | Ledger service is called from payout worker not just HTTP endpoints; precedent in PR #117",
+          "document_id": "pr:payments-service:124",
+          "sources": [
+            "PR #124"
+          ]
+        },
+        {
+          "label": "M6",
+          "memory_id": "d38fde6a-ed87-4027-a3da-cf3efcd2f0c5",
+          "type": "world",
+          "text": "Acme Payments team requires services to raise `app.errors` domain errors instead of `HTTPException`; API layer maps domain errors to HTTP (pattern established in PR #117) | Involving: bob stated the rule to erin | Services are called from consumers and jobs, not just HTTP routes, where HTTPException is meaningless",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M10",
+          "memory_id": "060b26a6-10b1-41a3-9942-5eda5e006e76",
+          "type": "world",
+          "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts",
+          "document_id": "pr:payments-service:117",
+          "sources": [
+            "PR #117"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-007: Money stored as integer minor units (amount_cents: int + currency: str); percentage calculations use integer arithmetic with explicit rounding helpers (apply_bps, round_half_even_div from app.domain.money)",
+      "evidence": [
+        {
+          "label": "M13",
+          "memory_id": "c9a9053b-cdb9-47f8-89c4-a59f0a11f660",
+          "type": "world",
+          "text": "ADR-007 (established in PR #112) mandates all money values in payments-service stay in int minor units, avoiding Decimal; rounding happens once in round_half_even_div helper | When: Before April 15, 2026 | Involving: Acme Payments team | Prevents int-Decimal boundary issues; ensures ledger and bank agree to the unit",
+          "document_id": "pr:payments-service:118",
+          "sources": [
+            "PR #118"
+          ]
+        },
+        {
+          "label": "M14",
+          "memory_id": "6408197d-3c3b-42ef-aab0-db005b4c541c",
+          "type": "world",
+          "text": "Acme Payments team adopted ADR-007, deciding to store and compute all money amounts as integer minor units (amount_cents: int), reversing their January 2026 move to Decimal | When: March 9-11, 2026 (PR #112 opened March 9, merged March 11) | Involving: bob (PR author), alice and carol (approved), frank (commented), team decision from architecture sync | Decimal caused JSON serialization inconsistencies breaking merchant reconciliation, Stripe and bank partners use integer minor units requiring conversions, JPY/KWD rounding mismatches between ledger and Stripe, and three bugs from mixing Decimal and float",
+          "document_id": "pr:payments-service:112",
+          "sources": [
+            "PR #112"
+          ]
+        },
+        {
+          "label": "M22",
+          "memory_id": "251e48f8-18fa-49d1-b637-f3048c090a31",
+          "type": "world",
+          "text": "Acme Payments team (alice, bob, carol as deciders) accepted ADR-007 in payments-service, mandating money representation as integer minor units (amount_cents: int + currency: str ISO 4217), superseding previous 'use Decimal' guidance from reviews #103 and #106 | When: March 10, 2026 | Involving: alice, bob, carol (deciders), Acme Payments team | To resolve Decimal issues: inconsistent JSON serialization, rounding disagreements with ledger/Stripe for JPY/KWD, bugs from Decimal+float mixing",
+          "document_id": "adr:payments-service:007",
+          "sources": [
+            "ADR-007"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Private helpers (underscore-prefixed) don't require docstrings; name and implementation considered sufficient documentation",
+      "evidence": [
+        {
+          "label": "M15",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M24",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M25",
+          "memory_id": "056e37cf-7dd0-48e3-a5fc-1a64fcf9fac4",
+          "type": "world",
+          "text": "frank suggested adding docstring to _to_code private helper in PR #129 thread t129-2; dan rejected citing team convention that private helpers don't need docstrings; erin accepted the rejection | When: 2026-07-14 | Involving: frank (suggested), dan (rejected), erin (author) | Team convention is that name and body document private helpers",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "title": "HTTP client must use make_client() not direct httpx.Client instantiation",
+      "file": "app/services/refund_fees.py",
+      "line": 20,
+      "severity": "high",
+      "category": "http_client",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "ADR-006 requires all outbound HTTP calls to use make_client() from app.clients.http, which provides standardized 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics. This ADR was adopted after February 11, 2026 incident where requests.get() without timeout hung worker threads for 9 minutes.",
+      "recommendation": "Create a client module in app/clients/bank_transfers.py built on make_client('bank-transfers') and expose a debit_merchant() function. Import and use that function instead of direct httpx.Client instantiation.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ],
+      "sources": [
+        "ADR-006",
+        "PR #123",
+        "PR #127"
+      ]
+    },
+    {
+      "title": "Missing @idempotent decorator on money-moving POST endpoint",
+      "file": "app/api/refunds.py",
+      "line": 22,
+      "severity": "high",
+      "category": "idempotency",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "ADR-004 mandates @idempotent decorator on all money-moving POST endpoints to require Idempotency-Key header and replay cached responses for duplicates with 24h TTL. This endpoint creates refunds and debits processing fees, both money-moving operations, making it critical to prevent duplicate charges when clients retry timed-out requests (as happened with EUR 1,240 duplicate refund in January 2026).",
+      "recommendation": "Add @idempotent decorator above @router.post on line 22, following the pattern in existing create_refund endpoint on lines 14-19.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M19",
+          "memory_id": "ea68cb77-a86b-4f22-abe1-6b723949a3ee",
+          "type": "world",
+          "text": "alice enforced team convention ADR-004 requiring @idempotent decorator on money-moving endpoints in payments-service | When: July 22, 2026 | Involving: alice (reviewer), bob (author) | Money-moving endpoint POST /payouts/convert was missing required decorator",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        },
+        {
+          "label": "M23",
+          "memory_id": "8324cb1c-7a48-4195-ac21-e6f4ab3bd39e",
+          "type": "world",
+          "text": "bob added @idempotent decorator to POST /payouts/convert endpoint after alice's review | When: July 22, 2026 | Involving: bob (author), alice (reviewer, decided acceptance) | To comply with ADR-004 requirement for money-moving endpoints",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #130"
+      ]
+    },
+    {
+      "title": "Use clock.now() instead of datetime.utcnow() for timestamp",
+      "file": "app/services/refund_fees.py",
+      "line": 41,
+      "severity": "medium",
+      "category": "datetime",
+      "classification": "TEAM_CONVENTION",
+      "basis": "hindsight_memory",
+      "explanation": "Team convention requires clock.now() from app.utils.clock instead of datetime.utcnow(). clock.now() returns timezone-aware datetimes matching DB timestamp fields and works with frozen_clock test fixture to prevent test failures across midnight boundaries.",
+      "recommendation": "Import clock from app.utils.clock at the top of the file and replace datetime.utcnow() with clock.now() on line 41.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M11",
+          "memory_id": "23980805-8483-42cc-831b-c1ddf85c45cf",
+          "type": "world",
+          "text": "Acme Payments team enforces use of clock.now() instead of datetime.utcnow() in payments-service; carol required dan to change datetime.utcnow() to clock.now() in PR #120, and bob previously caught the same issue in dan's settlement PR #105 | When: April 29, 2026 | Involving: carol (reviewer, enforced), dan (author), bob (previously enforced in PR #105) | clock.now() is timezone-aware and prevents test flakiness around midnight when freezing time in tests",
+          "document_id": "pr:payments-service:120",
+          "sources": [
+            "PR #120"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #120"
+      ]
+    },
+    {
+      "title": "Processing fee calculated on wrong amount",
+      "file": "app/services/refund_fees.py",
+      "line": 35,
+      "severity": "high",
+      "category": "logic_error",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "The fee is calculated on charge.amount_cents (original charge amount) instead of the actual refunded amount. Line 16 comment and PR description both state fee is '1.5% of the refunded amount', and the refund created on line 33 is for charge.refundable_cents, which may be less than amount_cents if prior refunds exist.",
+      "recommendation": "Change line 35 to calculate fee on the actual refunded amount: fee_cents = _processing_fee(refund.amount_cents) or fee_cents = _processing_fee(charge.refundable_cents).",
+      "confidence": 0.95,
+      "memory_evidence": [],
+      "sources": []
+    }
+  ],
+  "suppressed": [
+    {
+      "suggestion": "Add docstring to _processing_fee private helper function",
+      "file": "app/services/refund_fees.py",
+      "line": 48,
+      "reason": "Team convention is that private (underscore-prefixed) helpers are self-documenting through name and implementation; docstrings on helpers tend to rot and tests serve as better documentation.",
+      "evidence": [
+        "M15",
+        "M24",
+        "M25"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M15",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M24",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M25",
+          "memory_id": "056e37cf-7dd0-48e3-a5fc-1a64fcf9fac4",
+          "type": "world",
+          "text": "frank suggested adding docstring to _to_code private helper in PR #129 thread t129-2; dan rejected citing team convention that private helpers don't need docstrings; erin accepted the rejection | When: 2026-07-14 | Involving: frank (suggested), dan (rejected), erin (author) | Team convention is that name and body document private helpers",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #122",
+        "PR #129"
+      ]
+    }
+  ],
+  "dropped_unsupported": [],
+  "reflect_based_on": []
+}

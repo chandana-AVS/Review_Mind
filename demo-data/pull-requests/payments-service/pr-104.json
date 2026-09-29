@@ -1,0 +1,40 @@
+{
+  "number": 104,
+  "title": "Partial refunds endpoint",
+  "body": "`POST /charges/{charge_id}/refunds` with an amount, so support can refund part of a capture instead of voiding the whole charge. Multiple partial refunds are allowed until the refundable amount (captured - refunded) is used up; beyond that we raise `RefundExceedsCapture`.\n\nAmounts are `Decimal` end to end, same as charges since #103.\n\nTesting: service tests for exact, partial and over-refund cases; tried it on staging with a test card.",
+  "author": "bob",
+  "created_at": "2026-01-20T09:45:00Z",
+  "merged_at": "2026-01-22T16:30:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "refunds",
+    "api"
+  ],
+  "base_sha": "cbab98c664ca5cc53a80e4f1c44c353150001b03",
+  "head_sha": "6744a59c7b42fd85c7fc8922282affd098556953",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/refunds.py",
+      "status": "added",
+      "additions": 18,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,18 @@\n+from fastapi import APIRouter, HTTPException\n+\n+from app.api.schemas import CreateRefundRequest, RefundResponse\n+from app.db import session_scope\n+from app.repos import charges as charge_repo\n+from app.services import refunds as refund_service\n+\n+router = APIRouter(prefix=\"/charges\", tags=[\"refunds\"])\n+\n+\n+@router.post(\"/{charge_id}/refunds\", response_model=RefundResponse, status_code=201)\n+def create_refund(charge_id: str, body: CreateRefundRequest) -> RefundResponse:\n+    with session_scope() as session:\n+        charge = charge_repo.get(session, charge_id)\n+        if charge is None:\n+            raise HTTPException(status_code=404, detail=\"charge not found\")\n+        refund = refund_service.create_refund(session, charge, body.amount, body.reason)\n+    return RefundResponse.model_validate(refund, from_attributes=True)"
+    },
+    {
+      "path": "app/services/refunds.py",
+      "status": "added",
+      "additions": 36,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,36 @@\n+import logging\n+from decimal import Decimal\n+\n+from sqlalchemy.orm import Session\n+\n+from app import errors\n+from app.models import Charge, Refund\n+from app.repos import charges as charge_repo\n+from app.repos import refunds as refund_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def create_refund(session: Session, charge: Charge, amount: Decimal, reason: str | None) -> Refund:\n+    refundable = _refundable(charge)\n+    if amount > refundable:\n+        raise errors.RefundExceedsCapture(f\"requested {amount}, refundable {refundable}\")\n+    refund = Refund(\n+        id=new_id(\"re\"),\n+        charge_id=charge.id,\n+        amount=amount,\n+        currency=charge.currency,\n+        status=\"pending\",\n+        reason=reason,\n+        created_at=clock.now(),\n+    )\n+    refund_repo.insert(session, refund)\n+    charge_repo.add_refunded(session, charge.id, amount)\n+    logger.info(\"refund created id=%s charge=%s amount=%s\", refund.id, charge.id, amount)\n+    return refund\n+\n+\n+def _refundable(charge: Charge) -> Decimal:\n+    return charge.captured_amount - charge.refunded_amount"
+    },
+    {
+      "path": "app/api/schemas.py",
+      "status": "modified",
+      "additions": 13,
+      "deletions": 0,
+      "patch": "@@ -7,3 +7,16 @@\n     merchant_id: str\n     amount: Decimal = Field(gt=0)\n     currency: str = Field(min_length=3, max_length=3)\n+\n+\n+class CreateRefundRequest(BaseModel):\n+    amount: Decimal = Field(gt=0, decimal_places=2)\n+    reason: str | None = None\n+\n+\n+class RefundResponse(BaseModel):\n+    id: str\n+    charge_id: str\n+    amount: Decimal\n+    currency: str\n+    status: str"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "number": 119,
+  "title": "Stripe webhook receiver for capture/refund events",
+  "body": "Receives Stripe `charge.captured` / `charge.refunded` so our state catches up when ops act in the Stripe dashboard directly. Signature is verified; events are deduplicated in `processed_events` (unique on provider + event id) inside the same transaction as the update.",
+  "author": "alice",
+  "created_at": "2026-04-22T10:00:00Z",
+  "merged_at": "2026-04-23T16:45:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "integrations",
+    "webhooks"
+  ],
+  "base_sha": "b1dcae7246785fd5ef47130d4b369474d71cdce8",
+  "head_sha": "f33e365e277292e7ee372729f97abec4d7231129",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/webhooks.py",
+      "status": "added",
+      "additions": 15,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,15 @@\n+import stripe\n+from fastapi import APIRouter, Header, Request\n+\n+from app.config import settings\n+from app.services import webhooks as webhook_service\n+\n+router = APIRouter(prefix=\"/webhooks\", tags=[\"webhooks\"])\n+\n+\n+@router.post(\"/stripe\", status_code=204)\n+async def stripe_webhook(request: Request, stripe_signature: str = Header()) -> None:\n+    # Not @idempotent: Stripe retries with the same event id and the service dedupes on it.\n+    payload = await request.body()\n+    event = stripe.Webhook.construct_event(payload, stripe_signature, settings.stripe_webhook_secret)\n+    webhook_service.handle_stripe_event(event)"
+    },
+    {
+      "path": "app/services/webhooks.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+import stripe\n+\n+from app.db import session_scope\n+from app.repos import processed_events\n+from app.services import charges as charge_service\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+_HANDLERS = {\n+    \"charge.captured\": charge_service.on_provider_captured,\n+    \"charge.refunded\": charge_service.on_provider_refunded,\n+}\n+\n+\n+def handle_stripe_event(event: stripe.Event) -> None:\n+    handler = _HANDLERS.get(event.type)\n+    if handler is None:\n+        log.info(\"stripe_event_ignored\", event_id=event.id, event_type=event.type)\n+        return\n+    with session_scope() as session:\n+        if not processed_events.claim(session, provider=\"stripe\", event_id=event.id):\n+            log.info(\"stripe_event_duplicate\", event_id=event.id)\n+            return\n+        handler(session, event.data.object)\n+    log.info(\"stripe_event_processed\", event_id=event.id, event_type=event.type)"
+    }
+  ]
+}

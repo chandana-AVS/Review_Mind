@@ -1,0 +1,15 @@
+{
+  "team": { "name": "Acme Payments", "slug": "acme-payments" },
+  "members": [
+    { "handle": "alice", "name": "Alice Moreno", "role": "tech_lead", "joined": "2024-03-01", "notes": "Owns architecture decisions (ADRs)." },
+    { "handle": "bob", "name": "Bob Okafor", "role": "senior_engineer", "joined": "2024-06-15", "notes": "Money handling and integrations." },
+    { "handle": "carol", "name": "Carol Lin", "role": "engineer", "joined": "2025-01-10", "notes": "" },
+    { "handle": "dan", "name": "Dan Petrov", "role": "junior_engineer", "joined": "2025-09-01", "notes": "" },
+    { "handle": "erin", "name": "Erin Walsh", "role": "engineer", "joined": "2026-06-01", "notes": "New hire, June 2026." },
+    { "handle": "frank", "name": "Frank Adeyemi", "role": "staff_engineer", "joined": "2023-11-01", "notes": "Platform group; reviews across teams." }
+  ],
+  "repositories": [
+    { "slug": "payments-service", "language": "python", "default_branch": "main",
+      "description": "Charges, refunds, payouts and ledger for Acme checkout." }
+  ]
+}

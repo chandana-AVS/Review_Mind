@@ -1,0 +1,71 @@
+{
+  "pr": 120,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "changes_requested",
+      "submitted_at": "2026-04-28T12:00:00Z",
+      "body": "Function is too long."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-04-29T10:50:00Z",
+      "body": "Approving, see threads."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t120-1",
+      "path": "app/services/invoices.py",
+      "line": 12,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-04-28T11:55:00Z",
+          "body": "This function is ~30 lines. Functions should be under 20 lines, full stop. Split out `_build_document` and `_persist` at least."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-04-28T14:30:00Z",
+          "body": "I'd rather not. It reads top to bottom as one transaction, and splitting it means passing the session and half the locals around. Nothing in CONTRIBUTING mentions a line limit."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-04-29T10:40:00Z",
+          "body": "I agree with Dan. It's one cohesive unit and easy to follow. We don't have a length rule; we split when something gets hard to read."
+        },
+        {
+          "author": "frank",
+          "created_at": "2026-04-29T11:05:00Z",
+          "body": "Your call, I still think it's too long."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "carol",
+      "rejection_reason": "No line-length rule for functions here; this function is cohesive and readable.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t120-2",
+      "path": "app/services/invoices.py",
+      "line": 22,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-04-29T10:45:00Z",
+          "body": "This was `datetime.utcnow()` in the first version. Please use `clock.now()`: it's timezone-aware, and the invoice tests freeze the clock, so utcnow made them flaky around midnight."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-04-29T11:30:00Z",
+          "body": "Changed, same thing Bob caught in my settlement PR (#105). I need a pre-commit hook for this 😅"
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "carol",
+      "rejection_reason": null,
+      "follow_up_commit": "b82f39c00a81512b2876f6268392200a408af0a2"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "pr": 123,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-05-19T13:50:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-05-19T15:30:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-05-20T11:10:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-05-20T12:00:00Z",
+      "body": "Nice touch with the idempotency key."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t123-1",
+      "path": "app/clients/bank_transfers.py",
+      "line": 17,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-05-19T13:45:00Z",
+          "body": "The first commit added `transfer_status` with `requests.get(...)`. Same story as #113 and ADR-006: everything goes through the module's `_client`. requests isn't even in our dependencies anymore; it only worked because some dev dependency pulls it in."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-05-19T14:30:00Z",
+          "body": "Ugh, copied from the bank's sample code. Fixed to use `_client`."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "f1852d9811f948d3b354aeb9c4b3001829b3ab79"
+    },
+    {
+      "id": "t123-2",
+      "path": "app/jobs/retry_payouts.py",
+      "line": 18,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-05-19T15:25:00Z",
+          "body": "Each resubmission should be wrapped in a retry with exponential backoff; banks are flaky and one attempt per night is too few."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-05-20T11:05:00Z",
+          "body": "The shared client already retries transient errors on every call, and this job *is* the slow outer retry. Adding a backoff loop per payout is how INC-12 happened. One retry layer in the client, plus the nightly job for anything that's still failing."
+        },
+        {
+          "author": "frank",
+          "created_at": "2026-05-20T11:30:00Z",
+          "body": "Fine."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "make_client already retries; the nightly job is the outer retry. Extra loops caused INC-12.",
+      "follow_up_commit": null
+    }
+  ]
+}

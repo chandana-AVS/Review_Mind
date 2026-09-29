@@ -1,0 +1,33 @@
+{
+  "number": 127,
+  "title": "Email merchants when a chargeback is opened",
+  "body": "Merchants currently find out about disputes from the dashboard, often too late to submit evidence (7-day window). This sends a `dispute_opened` notification via the notifications service right after `open_dispute`.",
+  "author": "erin",
+  "created_at": "2026-06-24T10:45:00Z",
+  "merged_at": "2026-06-26T14:00:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "disputes",
+    "notifications"
+  ],
+  "base_sha": "423eebd7556906a7c51dd2acb4e8d3b497739a3e",
+  "head_sha": "5ae57aa6b02da683ea7f761b03b428c58b86ca99",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/clients/merchant_notifications.py",
+      "status": "added",
+      "additions": 12,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,12 @@\n+from app.clients.http import make_client\n+from app.config import settings\n+\n+_client = make_client(\"merchant_notifications\", settings.notifications_base_url)\n+\n+\n+def send(merchant_id: str, template: str, variables: dict[str, object]) -> None:\n+    response = _client.post(\n+        \"/v1/notifications\",\n+        json={\"merchant_id\": merchant_id, \"template\": template, \"variables\": variables},\n+    )\n+    response.raise_for_status()"
+    },
+    {
+      "path": "app/services/chargeback_notifications.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+from app import errors\n+from app.clients import merchant_notifications\n+from app.db import session_scope\n+from app.repos import disputes as dispute_repo\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+\n+def notify_dispute_opened(dispute_id: str) -> None:\n+    with session_scope() as session:\n+        dispute = dispute_repo.get(session, dispute_id)\n+        if dispute is None:\n+            raise errors.NotFound(f\"dispute {dispute_id} not found\")\n+        merchant_id = dispute_repo.merchant_for(session, dispute_id)\n+    merchant_notifications.send(\n+        merchant_id,\n+        \"dispute_opened\",\n+        {\n+            \"dispute_id\": dispute.id,\n+            \"amount_cents\": dispute.amount_cents,\n+            \"currency\": dispute.currency,\n+            \"evidence_due_at\": dispute.evidence_due_at.isoformat(),\n+        },\n+    )\n+    log.info(\"dispute_notification_sent\", dispute_id=dispute_id, merchant_id=merchant_id)"
+    }
+  ]
+}

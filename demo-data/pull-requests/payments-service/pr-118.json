@@ -1,0 +1,33 @@
+{
+  "number": 118,
+  "title": "FX conversion for cross-currency payouts",
+  "body": "Merchants with a GBP balance can now be paid out in EUR. Conversion uses the FX service's integer micro-rates and our half-even rounding helper; a 0.5% conversion fee is deducted.\n\nChecked against 200 historical conversions from finance's spreadsheet: all match to the minor unit.",
+  "author": "dan",
+  "created_at": "2026-04-15T11:05:00Z",
+  "merged_at": "2026-04-17T10:20:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "payouts",
+    "money"
+  ],
+  "base_sha": "d549cd1c1c8cc7b7fa353a6ec5bb506b63d6967b",
+  "head_sha": "c843310232e087f6b46df97dc1c8ec496ca1186e",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/fx.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+from app import errors\n+from app.clients import fx_rates\n+from app.domain.money import exponent, round_half_even_div\n+\n+RATE_SCALE = 1_000_000  # rates come from the provider as integer micro-units\n+\n+\n+def convert(amount_cents: int, source: str, target: str) -> int:\n+    \"\"\"Convert minor units of `source` into minor units of `target`.\"\"\"\n+    if source == target:\n+        return amount_cents\n+    rate_micro = fx_rates.get_rate_micro(source, target)\n+    if rate_micro <= 0:\n+        raise errors.InvalidCurrency(f\"no rate for {source}->{target}\")\n+    numerator = amount_cents * rate_micro * 10 ** exponent(target)\n+    denominator = RATE_SCALE * 10 ** exponent(source)\n+    return round_half_even_div(numerator, denominator)\n+\n+\n+def payout_amount(balance_cents: int, balance_currency: str, payout_currency: str) -> int:\n+    converted = convert(balance_cents, balance_currency, payout_currency)\n+    return converted - _conversion_fee(converted)\n+\n+\n+def _conversion_fee(amount_cents: int) -> int:\n+    return round_half_even_div(amount_cents * 50, 10_000)"
+    },
+    {
+      "path": "app/clients/fx_rates.py",
+      "status": "added",
+      "additions": 10,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,10 @@\n+from app.clients.http import make_client\n+from app.config import settings\n+\n+_client = make_client(\"fx\", settings.fx_base_url)\n+\n+\n+def get_rate_micro(source: str, target: str) -> int:\n+    response = _client.get(\"/v1/rates\", params={\"from\": source, \"to\": target})\n+    response.raise_for_status()\n+    return int(response.json()[\"rate_micro\"])"
+    }
+  ]
+}

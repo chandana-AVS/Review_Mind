@@ -1,0 +1,70 @@
+{
+  "pr": 133,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "133-F1",
+      "kind": "convention",
+      "convention": "C4",
+      "path": "app/api/disputes.py",
+      "line_range": [
+        9,
+        10
+      ],
+      "rationale": "Money-moving POST without @idempotent (ADR-004); a retry double-debits the merchant.",
+      "expected_fix": "Decorate debit_fee with @idempotent."
+    },
+    {
+      "id": "133-F2",
+      "kind": "convention",
+      "convention": "C6",
+      "path": "app/services/dispute_fees.py",
+      "line_range": [
+        20,
+        20
+      ],
+      "rationale": "Service raises HTTPException; services raise app.errors domain errors.",
+      "expected_fix": "raise errors.NotFound(...) / errors.Conflict(...) and let api/errors.py map them."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "133-X1",
+      "noise": "N4",
+      "exception": null,
+      "path": "app/services/dispute_fees.py",
+      "line_range": [
+        23,
+        23
+      ],
+      "trap": "Use Decimal for the percentage fee to avoid rounding errors.",
+      "reject_reason": "Int minor units per ADR-007, apply_bps does the rounding. No Decimal."
+    },
+    {
+      "id": "133-X2",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/dispute_fees.py",
+      "line_range": [
+        32,
+        32
+      ],
+      "trap": "Add a docstring to _fee_for.",
+      "reject_reason": "Private one-liner, no docstring needed."
+    },
+    {
+      "id": "133-X3",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_dispute_fees.py",
+      "line_range": [
+        6,
+        6
+      ],
+      "trap": "Replace 20_000 and 1_580 with named constants.",
+      "reject_reason": "Keep literals inline in tests so the expected numbers are visible."
+    }
+  ],
+  "drift_trap": null
+}

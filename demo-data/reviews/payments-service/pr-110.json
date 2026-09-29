@@ -1,0 +1,72 @@
+{
+  "pr": 110,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-02-23T13:10:00Z",
+      "body": "Yes please. This would have saved us on the 11th."
+    },
+    {
+      "reviewer": "dan",
+      "state": "commented",
+      "submitted_at": "2026-02-23T14:25:00Z",
+      "body": "One question inline."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-02-24T10:02:00Z",
+      "body": "LGTM"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t110-1",
+      "path": "docs/adr/ADR-006-shared-http-client.md",
+      "line": 16,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-02-23T13:05:00Z",
+          "body": "+1 on making this a hard rule rather than a suggestion. In #102 I said requests was fine \"for now\"; that was the wrong call in hindsight. Anything under app/ that talks HTTP should go through make_client, no exceptions except SDKs with their own transport."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-02-23T13:40:00Z",
+          "body": "Agreed. I'll call it out in review from now on."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    },
+    {
+      "id": "t110-2",
+      "path": "app/clients/http.py",
+      "line": 24,
+      "comments": [
+        {
+          "author": "dan",
+          "created_at": "2026-02-23T14:20:00Z",
+          "body": "Should callers still add their own retry around calls to, e.g., the card network? I was going to do that for the status poller."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-02-23T15:02:00Z",
+          "body": "No. Retries live here and only here. If a caller also retries, you multiply attempts and a flaky downstream turns into a retry storm. If some call needs a different policy we'll add a parameter to make_client, not a loop at the call site."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-02-23T15:10:00Z",
+          "body": "Got it, thanks."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

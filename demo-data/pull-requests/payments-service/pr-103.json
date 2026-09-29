@@ -1,0 +1,40 @@
+{
+  "number": 103,
+  "title": "Store charge amounts precisely",
+  "body": "Charge amounts are `Float` columns today, and finance found a merchant whose December settlement was off by 0.01 after summing a few thousand captures. This moves the three amount columns on `charges` to `NUMERIC(12, 2)` and rounds incoming amounts to 2 dp in `create_charge`.\n\nMigration rounds existing values in place. Ran it against a copy of prod: no row changes by more than 0.005.\n\nRefunds table follows in a separate PR once this has been live for a few days.",
+  "author": "carol",
+  "created_at": "2026-01-14T10:20:00Z",
+  "merged_at": "2026-01-16T14:05:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "money",
+    "database"
+  ],
+  "base_sha": "93a460cf546961d393aa5e0877c1ea5eeb8d95fe",
+  "head_sha": "da00724195ec72e23e1671936cd058adc678a4cf",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/models.py",
+      "status": "modified",
+      "additions": 7,
+      "deletions": 3,
+      "patch": "@@ -16,8 +16,12 @@\n \n     id: Mapped[str] = mapped_column(String, primary_key=True)\n     merchant_id: Mapped[str] = mapped_column(String, nullable=False)\n-    amount: Mapped[float] = mapped_column(Float, nullable=False)\n-    captured_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)\n-    refunded_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)\n+    amount: Mapped[float] = mapped_column(Numeric(12, 2, asdecimal=False), nullable=False)\n+    captured_amount: Mapped[float] = mapped_column(\n+        Numeric(12, 2, asdecimal=False), nullable=False, default=0\n+    )\n+    refunded_amount: Mapped[float] = mapped_column(\n+        Numeric(12, 2, asdecimal=False), nullable=False, default=0\n+    )\n     currency: Mapped[str] = mapped_column(String(3), nullable=False)\n     status: Mapped[str] = mapped_column(String, nullable=False)"
+    },
+    {
+      "path": "migrations/versions/0004_charge_amounts_numeric.py",
+      "status": "added",
+      "additions": 28,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,28 @@\n+\"\"\"charges: amounts from float to numeric(12, 2)\n+\n+Revision ID: 0004\n+Revises: 0003\n+\"\"\"\n+\n+import sqlalchemy as sa\n+from alembic import op\n+\n+revision = \"0004\"\n+down_revision = \"0003\"\n+\n+COLUMNS = (\"amount\", \"captured_amount\", \"refunded_amount\")\n+\n+\n+def upgrade() -> None:\n+    for column in COLUMNS:\n+        op.alter_column(\n+            \"charges\",\n+            column,\n+            type_=sa.Numeric(12, 2),\n+            postgresql_using=f\"round({column}::numeric, 2)\",\n+        )\n+\n+\n+def downgrade() -> None:\n+    for column in COLUMNS:\n+        op.alter_column(\"charges\", column, type_=sa.Float())"
+    },
+    {
+      "path": "app/services/charges.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -15,7 +15,7 @@\n         charge = Charge(\n             id=new_id(\"ch\"),\n             merchant_id=merchant_id,\n-            amount=amount,\n+            amount=round(amount, 2),\n             captured_amount=0.0,\n             refunded_amount=0.0,\n             currency=currency,"
+    }
+  ]
+}

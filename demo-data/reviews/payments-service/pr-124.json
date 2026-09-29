@@ -1,0 +1,99 @@
+{
+  "pr": 124,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-05-26T12:10:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "carol",
+      "state": "changes_requested",
+      "submitted_at": "2026-05-26T14:20:00Z",
+      "body": "PII in logs."
+    },
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-05-26T15:00:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-05-27T10:30:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t124-1",
+      "path": "app/services/ledger.py",
+      "line": 14,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-05-26T12:05:00Z",
+          "body": "LedgerEntry is the perfect case for Pydantic: you want amount/currency validation on every entry. A dataclass gives you nothing."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-05-26T13:00:00Z",
+          "body": "Validation happens in `insert_balanced` (it checks the entries balance), which is the invariant that actually matters. Field-level coercion is exactly what we don't want near money."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-05-26T14:55:00Z",
+          "body": "Dataclass per ADR-005. Frank, if you want to reopen the ADR, let's do it at the arch sync rather than in individual PRs; this is the third time (#109, #115)."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "ADR-005: domain types are frozen dataclasses; reopen the ADR at arch sync, not per PR.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t124-2",
+      "path": "app/services/ledger.py",
+      "line": 32,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-05-26T14:15:00Z",
+          "body": "This logged `customer_email=customer_email` in the first version. Emails are PII and Datadog retention is 30 days: please `redact()` it, or better, drop it and log the refund id only."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-05-26T16:00:00Z",
+          "body": "Good catch. Redacted; kept it for support's sake since the masked domain is still useful."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "carol",
+      "rejection_reason": null,
+      "follow_up_commit": "a73644e9e82bf38d6ba073349d3838d094fdfa2e"
+    },
+    {
+      "id": "t124-3",
+      "path": "app/services/ledger.py",
+      "line": 25,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-05-26T14:58:00Z",
+          "body": "First commit raised `HTTPException(422)` here. The ledger is called from the payout worker too, so domain error please (see #117)."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-05-26T16:02:00Z",
+          "body": "Yep, changed to errors.Conflict."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "66ef6a219385114d9d6b4c6b84e38f2450a4989f"
+    }
+  ]
+}

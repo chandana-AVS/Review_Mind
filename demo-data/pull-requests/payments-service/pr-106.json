@@ -1,0 +1,33 @@
+{
+  "number": 106,
+  "title": "Partial captures",
+  "body": "Marketplace merchants ship orders in several parcels and want to capture per parcel. `capture_charge` now takes an optional `amount`; without it we capture the full amount as before. Capturing more than the remaining authorized amount raises `Conflict`.\n\nThe API change (`amount` in the capture body) comes in a follow-up once product signs off on the error messages.",
+  "author": "carol",
+  "created_at": "2026-02-02T09:55:00Z",
+  "merged_at": "2026-02-04T10:15:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "money",
+    "charges"
+  ],
+  "base_sha": "1b7b69f8074068b2288b35fc835014009b9a4548",
+  "head_sha": "c8e4b7cc07b52942a5d051221ba53a54a3726e86",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/charges.py",
+      "status": "modified",
+      "additions": 7,
+      "deletions": 2,
+      "patch": "@@ -30,10 +30,15 @@\n     return charge\n \n \n-def capture_charge(*, charge_id: str) -> Charge:\n+def capture_charge(*, charge_id: str, amount: Decimal | None = None) -> Charge:\n+    \"\"\"Capture an authorized charge in full, or partially when `amount` is given.\"\"\"\n     with session_scope() as session:\n         charge = charge_repo.get(session, charge_id)\n         if charge is None:\n             raise errors.NotFound(f\"charge {charge_id} not found\")\n-        charge_repo.mark_captured(session, charge.id, charge.amount, clock.now())\n+        to_capture = charge.amount if amount is None else amount\n+        remaining = float(charge.amount) - float(charge.captured_amount)\n+        if float(to_capture) > remaining:\n+            raise errors.Conflict(f\"capture {to_capture} exceeds remaining {remaining}\")\n+        charge_repo.mark_captured(session, charge.id, to_capture, clock.now())\n     return charge"
+    },
+    {
+      "path": "tests/test_charges.py",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,31 @@\n+from datetime import UTC, datetime\n+from decimal import Decimal\n+\n+import pytest\n+\n+from app import errors\n+from app.models import Charge\n+from app.services import charges\n+\n+\n+def _charge():\n+    return Charge(\n+        id=\"ch_1\", merchant_id=\"m_1\", amount=Decimal(\"100.00\"),\n+        captured_amount=Decimal(\"0\"), refunded_amount=Decimal(\"0\"),\n+        currency=\"EUR\", status=\"authorized\", created_at=datetime(2026, 1, 30, tzinfo=UTC),\n+    )\n+\n+\n+def test_partial_capture(fake_repos, frozen_clock):\n+    fake_repos.charges.add(_charge())\n+\n+    charges.capture_charge(charge_id=\"ch_1\", amount=Decimal(\"40.00\"))\n+\n+    assert fake_repos.charges.get(\"ch_1\").captured_amount == Decimal(\"40.00\")\n+\n+\n+def test_capture_too_much(fake_repos, frozen_clock):\n+    fake_repos.charges.add(_charge())\n+\n+    with pytest.raises(errors.Conflict):\n+        charges.capture_charge(charge_id=\"ch_1\", amount=Decimal(\"100.01\"))"
+    }
+  ]
+}

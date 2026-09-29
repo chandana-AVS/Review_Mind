@@ -1,0 +1,81 @@
+{
+  "ran_at": "2026-09-29T10:24:26.779392+00:00",
+  "bank": "reviewmind-acme-payments",
+  "mode": "local",
+  "requested": [
+    113
+  ],
+  "retained": [
+    113
+  ],
+  "failed": [],
+  "skipped_unchanged": [],
+  "concurrency_limit": 5,
+  "max_concurrency_observed": 1,
+  "wall_seconds": 0.4,
+  "runs": [
+    {
+      "pr": 113,
+      "document_id": "pr:payments-service:113",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 0.4,
+      "seconds": 0.4,
+      "content_chars": 2480,
+      "threads": 2
+    }
+  ],
+  "auto_consolidation_enabled": false,
+  "memory": {
+    "total_memory_units": 14,
+    "types_total": {
+      "world": 14
+    },
+    "by_document": {
+      "pr:payments-service:104": {
+        "world": 6
+      },
+      "pr:payments-service:112": {
+        "world": 3
+      },
+      "pr:payments-service:113": {
+        "world": 5
+      }
+    },
+    "observations": 0,
+    "provenance_sample": {
+      "text": "Dan's PR #113 added fraud-scoring service integration to authorize_charge in payments-service, calling /v2/score and declining charges scoring 80+ with PaymentDeclined(\"fraud_score_too_high\"); 80 threshold agreed with risk team on March 12, 2026 | When: March 16-18, 2026 | Involving: dan (author), alice, frank (reviewers) | Fraud prevention before payment authorization",
+      "type": "world",
+      "document_id": "pr:payments-service:113",
+      "tags": [
+        "area:clients",
+        "author:dan",
+        "outcome:rejected",
+        "source:pr_history",
+        "pr:113",
+        "team:acme-payments",
+        "area:services",
+        "outcome:applied",
+        "repo:payments-service"
+      ],
+      "metadata": {
+        "adr": "",
+        "repo": "payments-service",
+        "team": "acme-payments",
+        "split": "history",
+        "state": "merged",
+        "author": "dan",
+        "source": "pr_history",
+        "outcomes": "t113-1=applied,t113-2=rejected",
+        "pr_title": "Score charges with the fraud service before authorization",
+        "merged_at": "2026-03-18T11:05:00Z",
+        "pr_number": "113",
+        "created_at": "2026-03-16T09:41:00Z",
+        "thread_ids": "t113-1,t113-2",
+        "applied_count": "1",
+        "rejected_count": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "pr": 138,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "138-F1",
+      "kind": "convention",
+      "convention": "C2",
+      "path": "app/api/payouts.py",
+      "line_range": [
+        33,
+        34
+      ],
+      "rationale": "The handler opens a session and queries the repo directly; handlers must call a service (ADR-003).",
+      "expected_fix": "Add payout_batches.list_batch_payouts(batch_id) and call it from the handler."
+    },
+    {
+      "id": "138-F2",
+      "kind": "convention",
+      "convention": "C5",
+      "path": "app/services/payout_batches.py",
+      "line_range": [
+        28,
+        28
+      ],
+      "rationale": "f-string log message: not a stable snake_case event, fields aren't queryable.",
+      "expected_fix": "log.info(\"payout_batches_submitted\", merchant_id=merchant_id, batch_count=len(batch_ids))"
+    },
+    {
+      "id": "138-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/payout_batches.py",
+      "line_range": [
+        33,
+        33
+      ],
+      "rationale": "Floor division drops the final partial batch: 450 pending payouts produce two batches and the last 50 are never submitted.",
+      "expected_fix": "Use ceil division, or simply [payouts[i:i + size] for i in range(0, len(payouts), size)]."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "138-X1",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/payout_batches.py",
+      "line_range": [
+        32,
+        32
+      ],
+      "trap": "_chunk should have a docstring describing how it splits the list.",
+      "reject_reason": "Private helper, the name is the documentation. Docstrings are for public service functions."
+    },
+    {
+      "id": "138-X2",
+      "noise": "N3",
+      "exception": null,
+      "path": "app/services/payout_batches.py",
+      "line_range": [
+        2,
+        4
+      ],
+      "trap": "Imports are not sorted alphabetically (app.utils.logging before app.domain/app.db).",
+      "reject_reason": "ruff sorts imports in pre-commit, please don't spend review comments on ordering."
+    },
+    {
+      "id": "138-X3",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/services/payout_batches.py",
+      "line_range": [
+        23,
+        23
+      ],
+      "trap": "Wrap submit_batch in try/except, log the failing batch and re-raise.",
+      "reject_reason": "Let the error propagate, the error middleware already logs it; a local log-and-raise double-logs."
+    }
+  ],
+  "drift_trap": null
+}

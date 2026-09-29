@@ -1,0 +1,82 @@
+{
+  "pr": 135,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "135-F1",
+      "kind": "convention",
+      "convention": "C3",
+      "path": "app/services/merchant_webhooks.py",
+      "line_range": [
+        26,
+        30
+      ],
+      "rationale": "Raw httpx.post instead of a make_client-based client (ADR-006).",
+      "expected_fix": "Build a merchant_webhooks client module on make_client and post through it."
+    },
+    {
+      "id": "135-F2",
+      "kind": "convention",
+      "convention": "C5",
+      "path": "app/services/merchant_webhooks.py",
+      "line_range": [
+        33,
+        33
+      ],
+      "rationale": "Logs the merchant's email address unredacted (PII).",
+      "expected_fix": "Drop merchant_email or wrap it in redact()."
+    },
+    {
+      "id": "135-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/merchant_webhooks.py",
+      "line_range": [
+        25,
+        25
+      ],
+      "rationale": "Signs the Python repr of the dict, not the JSON bytes actually sent; merchants can't verify it.",
+      "expected_fix": "Serialise once with json.dumps, sign those bytes and send them as content."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "135-X1",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_merchant_webhooks.py",
+      "line_range": [
+        11,
+        11
+      ],
+      "trap": "Pull 4_999 into a named constant.",
+      "reject_reason": "Test literals stay inline, that's our style."
+    },
+    {
+      "id": "135-X2",
+      "noise": "N5",
+      "exception": null,
+      "path": "app/services/merchant_webhooks.py",
+      "line_range": [
+        32,
+        32
+      ],
+      "trap": "Merchant endpoints are unreliable, add retries with exponential backoff.",
+      "reject_reason": "Retries belong in the shared client, not ad hoc at call sites (INC-12)."
+    },
+    {
+      "id": "135-X3",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/merchant_webhooks.py",
+      "line_range": [
+        36,
+        36
+      ],
+      "trap": "Document _sign with a docstring.",
+      "reject_reason": "No docstrings on private helpers."
+    }
+  ],
+  "drift_trap": null
+}

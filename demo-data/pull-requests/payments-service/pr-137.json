@@ -1,0 +1,47 @@
+{
+  "number": 137,
+  "title": "Add refund processing fee",
+  "body": "Adds `POST /refunds/remaining`: refunds whatever is still refundable on a charge and debits the merchant our refund processing fee through the bank transfers service.\n\nFee follows pricing sheet v4: 1.5% of the refunded amount, with a 0.30 minimum. Support asked for this so they stop doing the refund and the manual fee debit as two separate steps.\n\nTesting: unit tests with the bank debit call stubbed out; tried it against bank-transfers sandbox.",
+  "author": "erin",
+  "created_at": "2026-09-01T10:14:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "refunds",
+    "pricing"
+  ],
+  "base_sha": "eb4f4745360e5316706932b4ecec3b3fb78296f3",
+  "head_sha": "d8d568e0e0a73b8b6249d591106ae21df3a56a26",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/refunds.py",
+      "status": "modified",
+      "additions": 12,
+      "deletions": 1,
+      "patch": "@@ -1,6 +1,9 @@\n from fastapi import APIRouter\n \n-from app.api.schemas import CreateRefundRequest, RefundResponse\n+from app.api.schemas import (\n+    CreateRefundRequest, RefundRemainingRequest, RefundResponse, RefundWithFeeResponse,\n+)\n+from app.services import refund_fees as refund_fee_service\n from app.services import refunds as refund_service\n from app.utils.idempotency import idempotent\n \n@@ -14,3 +17,11 @@\n         charge_id=body.charge_id, amount_cents=body.amount_cents, reason=body.reason\n     )\n     return RefundResponse(**refund.as_dict())\n+\n+\n+@router.post(\"/remaining\", response_model=RefundWithFeeResponse, status_code=201)\n+def refund_remaining_with_fee(body: RefundRemainingRequest) -> RefundWithFeeResponse:\n+    refund, fee_cents = refund_fee_service.refund_remaining_with_fee(\n+        charge_id=body.charge_id, reason=body.reason\n+    )\n+    return RefundWithFeeResponse(**refund.as_dict(), fee_cents=fee_cents)"
+    },
+    {
+      "path": "app/api/schemas.py",
+      "status": "modified",
+      "additions": 9,
+      "deletions": 0,
+      "patch": "@@ -13,3 +13,12 @@\n     amount_cents: int\n     currency: str\n     status: str\n+\n+\n+class RefundRemainingRequest(BaseModel):\n+    charge_id: str\n+    reason: str | None = None\n+\n+\n+class RefundWithFeeResponse(RefundResponse):\n+    fee_cents: int"
+    },
+    {
+      "path": "app/services/refund_fees.py",
+      "status": "added",
+      "additions": 50,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,50 @@\n+from datetime import datetime\n+\n+import httpx\n+\n+from app import errors\n+from app.config import settings\n+from app.db import session_scope\n+from app.domain.models import Refund\n+from app.domain.money import apply_bps\n+from app.repos import charges as charge_repo\n+from app.services import refunds as refund_service\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+# Pricing sheet v4: 1.5% of the refunded amount, minimum 0.30 in the charge currency.\n+REFUND_FEE_BPS = 150\n+MIN_REFUND_FEE_CENTS = 30\n+\n+_bank = httpx.Client(base_url=settings.bank_transfers_base_url, timeout=10.0)\n+\n+\n+def refund_remaining_with_fee(*, charge_id: str, reason: str | None) -> tuple[Refund, int]:\n+    \"\"\"Refund whatever is left on a charge and debit the merchant our processing fee.\"\"\"\n+    with session_scope() as session:\n+        charge = charge_repo.get(session, charge_id)\n+    if charge is None:\n+        raise errors.NotFound(f\"charge {charge_id} not found\")\n+    if charge.refundable_cents == 0:\n+        raise errors.Conflict(f\"charge {charge_id} is already fully refunded\")\n+\n+    refund = refund_service.create_refund(\n+        charge_id=charge_id, amount_cents=charge.refundable_cents, reason=reason\n+    )\n+    fee_cents = _processing_fee(charge.amount_cents)\n+    response = _bank.post(\"/v1/debits\", json={\n+        \"merchant_id\": charge.merchant_id,\n+        \"amount_cents\": fee_cents,\n+        \"currency\": charge.currency,\n+        \"reference\": refund.id,\n+        \"requested_at\": datetime.utcnow().isoformat(),\n+    })\n+    response.raise_for_status()\n+    log.info(\"refund_fee_debited\", refund_id=refund.id, fee_cents=fee_cents)\n+    return refund, fee_cents\n+\n+\n+def _processing_fee(amount_cents: int) -> int:\n+    fee_cents = apply_bps(amount_cents, REFUND_FEE_BPS)\n+    return max(fee_cents, MIN_REFUND_FEE_CENTS)"
+    },
+    {
+      "path": "tests/test_refund_fees.py",
+      "status": "added",
+      "additions": 35,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,35 @@\n+import httpx\n+import pytest\n+\n+from app.services import refund_fees\n+from tests.factories import make_charge\n+\n+\n+@pytest.fixture\n+def bank_debits(monkeypatch):\n+    calls = []\n+\n+    def fake_post(url, json):\n+        calls.append(json)\n+        return httpx.Response(201, json={\"id\": \"dbt_1\"}, request=httpx.Request(\"POST\", url))\n+\n+    monkeypatch.setattr(refund_fees._bank, \"post\", fake_post)\n+    return calls\n+\n+\n+def test_refund_remaining_with_fee__no_prior_refunds__debits_150_bps(fake_repos, bank_debits):\n+    fake_repos.charges.add(make_charge(amount_cents=10_000, captured_cents=10_000))\n+\n+    refund, fee_cents = refund_fees.refund_remaining_with_fee(charge_id=\"ch_test_1\", reason=None)\n+\n+    assert refund.amount_cents == 10_000\n+    assert fee_cents == 150\n+    assert bank_debits[0][\"amount_cents\"] == 150\n+\n+\n+def test_refund_remaining_with_fee__small_charge__applies_minimum_fee(fake_repos, bank_debits):\n+    fake_repos.charges.add(make_charge(amount_cents=1_000, captured_cents=1_000))\n+\n+    _, fee_cents = refund_fees.refund_remaining_with_fee(charge_id=\"ch_test_1\", reason=None)\n+\n+    assert fee_cents == 30"
+    }
+  ]
+}

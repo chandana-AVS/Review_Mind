@@ -1,0 +1,48 @@
+{
+  "number": 142,
+  "title": "Stripe payout webhook events",
+  "body": "Stripe Connect sends payout lifecycle events to a separate endpoint (different signing secret), so this adds `POST /webhooks/stripe/payouts`.\n\n- `payout.paid` / `payout.canceled` update the payout status\n- `payout.failed` also credits the amount back to the merchant balance and notifies the merchant\n\nNeeds `PAYMENTS_STRIPE_PAYOUTS_WEBHOOK_SECRET` in staging/prod, already requested from platform.",
+  "author": "dan",
+  "created_at": "2026-09-17T13:36:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "payouts",
+    "webhooks",
+    "stripe"
+  ],
+  "base_sha": "f1eb4897d386ddd60883684efa5eca4a83ca4d30",
+  "head_sha": "df704a3b95a63882e5e3dcf46cba5df21f8d81a4",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/webhooks.py",
+      "status": "modified",
+      "additions": 9,
+      "deletions": 0,
+      "patch": "@@ -13,3 +13,12 @@\n     payload = await request.body()\n     event = stripe.Webhook.construct_event(payload, stripe_signature, settings.stripe_webhook_secret)\n     webhook_service.handle_stripe_event(event)\n+\n+\n+@router.post(\"/stripe/payouts\", status_code=204)\n+async def stripe_payout_webhook(request: Request, stripe_signature: str = Header()) -> None:\n+    payload = await request.body()\n+    event = stripe.Webhook.construct_event(\n+        payload, stripe_signature, settings.stripe_payouts_webhook_secret\n+    )\n+    webhook_service.handle_stripe_payout_event(event)"
+    },
+    {
+      "path": "app/services/webhooks.py",
+      "status": "modified",
+      "additions": 28,
+      "deletions": 0,
+      "patch": "@@ -1,7 +1,11 @@\n import stripe\n+from fastapi import HTTPException\n from sqlalchemy.orm import Session\n \n+from app.clients import merchant_notifications\n from app.db import session_scope\n+from app.repos import balances as balance_repo\n+from app.repos import payouts as payout_repo\n from app.repos import webhook_events as webhook_event_repo\n from app.utils import clock\n from app.utils.logging import get_logger\n@@ -24,3 +28,27 @@\n         log.info(\"stripe_event_unhandled\", event_id=event.id, event_type=event.type)\n         return\n     handler(session, event.data.object)\n+\n+\n+_PAYOUT_STATUS = {\"payout.paid\": \"paid\", \"payout.failed\": \"failed\", \"payout.canceled\": \"canceled\"}\n+\n+\n+def handle_stripe_payout_event(event: stripe.Event) -> None:\n+    \"\"\"Apply a Stripe Connect payout event to our payout and the merchant balance.\"\"\"\n+    status = _PAYOUT_STATUS.get(event.type)\n+    if status is None:\n+        log.info(f\"ignoring stripe payout event {event.type} ({event.id})\")\n+        return\n+    payout_id = event.data.object.metadata.get(\"acme_payout_id\")\n+    if payout_id is None:\n+        raise HTTPException(status_code=422, detail=f\"event {event.id} has no acme_payout_id\")\n+\n+    with session_scope() as session:\n+        payout = payout_repo.get(session, payout_id)\n+        payout_repo.set_status(session, payout_id, status, clock.now())\n+        if status == \"failed\":\n+            balance_repo.credit(session, payout.merchant_id, payout.amount_cents, reason=\"payout_failed\")\n+        first_delivery = webhook_event_repo.insert_if_new(session, event.id, event.type, clock.now())\n+\n+    if first_delivery and status == \"failed\":\n+        merchant_notifications.payout_failed(merchant_id=payout.merchant_id, payout_id=payout.id)"
+    },
+    {
+      "path": "app/config.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 0,
+      "patch": "@@ -8,4 +8,5 @@\n     redis_url: str = \"redis://localhost:6379/0\"\n     stripe_api_key: str = \"\"\n     stripe_webhook_secret: str = \"\"\n+    stripe_payouts_webhook_secret: str = \"\"\n     card_network_base_url: str = \"https://status.cardnet.example\""
+    },
+    {
+      "path": "tests/test_stripe_payout_webhooks.py",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,31 @@\n+from types import SimpleNamespace\n+\n+import pytest\n+\n+from app.services import webhooks\n+from tests.factories import make_payout\n+\n+\n+@pytest.fixture\n+def payout_event():\n+    def build(event_type, payout_id=\"po_test_1\", event_id=\"evt_1\"):\n+        obj = SimpleNamespace(metadata={\"acme_payout_id\": payout_id})\n+        return SimpleNamespace(id=event_id, type=event_type, data=SimpleNamespace(object=obj))\n+\n+    return build\n+\n+\n+def test_handle_stripe_payout_event__paid__marks_payout_paid(fake_repos, payout_event, frozen_clock):\n+    fake_repos.payouts.add(make_payout(status=\"in_transit\"))\n+\n+    webhooks.handle_stripe_payout_event(payout_event(\"payout.paid\"))\n+\n+    assert fake_repos.payouts.get(\"po_test_1\").status == \"paid\"\n+\n+\n+def test_handle_stripe_payout_event__failed__credits_merchant_balance(fake_repos, payout_event, frozen_clock):\n+    fake_repos.payouts.add(make_payout(status=\"in_transit\", amount_cents=50_000))\n+\n+    webhooks.handle_stripe_payout_event(payout_event(\"payout.failed\"))\n+\n+    assert fake_repos.balances.get(\"m_1\") == 50_000"
+    }
+  ]
+}

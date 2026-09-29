@@ -1,0 +1,39 @@
+{
+  "number": 125,
+  "title": "Save cards for returning customers",
+  "body": "Hi all, my first PR here! 👋\n\nAdds `POST /customers/{id}/cards`, which exchanges a Stripe SetupIntent token with our tokenizer and stores the resulting token + display details. Part of CHK-9 (one-click checkout).\n\nI've tried to follow CONTRIBUTING, but please tell me if anything doesn't match how you do things.",
+  "author": "erin",
+  "created_at": "2026-06-03T10:30:00Z",
+  "merged_at": "2026-06-05T16:20:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "checkout"
+  ],
+  "base_sha": "a4412b01f54844ad9580531b86a858a5c6c44661",
+  "head_sha": "c7c3cf3bed417638452776b07fedadfd3342cec4",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/saved_cards.py",
+      "status": "added",
+      "additions": 14,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,14 @@\n+from fastapi import APIRouter\n+\n+from app.api.schemas import SaveCardRequest, SavedCardResponse\n+from app.services import saved_cards as saved_card_service\n+from app.utils.idempotency import idempotent\n+\n+router = APIRouter(prefix=\"/customers/{customer_id}/cards\", tags=[\"cards\"])\n+\n+\n+@router.post(\"\", response_model=SavedCardResponse, status_code=201)\n+@idempotent\n+def save_card(customer_id: str, body: SaveCardRequest) -> SavedCardResponse:\n+    card = saved_card_service.save_card(customer_id=customer_id, setup_token=body.setup_token)\n+    return SavedCardResponse(**card.as_dict())"
+    },
+    {
+      "path": "app/services/saved_cards.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+from app import errors\n+from app.clients import tokenizer\n+from app.db import session_scope\n+from app.domain.models import SavedCard\n+from app.repos import customers as customer_repo\n+from app.repos import saved_cards as saved_card_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+\n+\n+def save_card(*, customer_id: str, setup_token: str) -> SavedCard:\n+    token = tokenizer.exchange_setup_token(setup_token)\n+    with session_scope() as session:\n+        if customer_repo.get(session, customer_id) is None:\n+            raise errors.NotFound(f\"customer {customer_id} not found\")\n+        card = SavedCard(\n+            id=new_id(\"card\"),\n+            customer_id=customer_id,\n+            token=token.id,\n+            brand=token.brand,\n+            last4=token.last4,\n+            created_at=clock.now(),\n+        )\n+        saved_card_repo.insert(session, card)\n+    return card"
+    },
+    {
+      "path": "tests/test_saved_cards.py",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,19 @@\n+from app.services import saved_cards\n+from tests.factories import make_customer\n+\n+\n+def test_save_card__valid_setup_token__stores_tokenized_card(fake_repos, fake_tokenizer, frozen_clock):\n+    fake_repos.customers.add(make_customer(id=\"cus_1\"))\n+    fake_tokenizer.will_return(id=\"tok_1\", brand=\"visa\", last4=\"4242\")\n+\n+    card = saved_cards.save_card(customer_id=\"cus_1\", setup_token=\"seti_1\")\n+\n+    assert card.token == \"tok_1\"\n+    assert card.created_at == frozen_clock\n+\n+\n+def test_save_card__unknown_customer__raises_not_found(fake_repos, fake_tokenizer):\n+    fake_tokenizer.will_return(id=\"tok_1\", brand=\"visa\", last4=\"4242\")\n+\n+    with pytest.raises(errors.NotFound):\n+        saved_cards.save_card(customer_id=\"cus_missing\", setup_token=\"seti_1\")"
+    }
+  ]
+}

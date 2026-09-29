@@ -1,0 +1,72 @@
+{
+  "pr": 103,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-01-14T15:40:00Z",
+      "body": "Column change is right, but we shouldn't convert back to float in Python. Details inline."
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-01-15T17:22:00Z",
+      "body": "Thanks, Decimal all the way through looks good."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-01-16T10:03:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t103-1",
+      "path": "app/models.py",
+      "line": 19,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-01-14T15:32:00Z",
+          "body": "Float will bite us here even with a numeric column. `asdecimal=False` hands the value back to Python as a float, so every sum in settlement goes through binary floating point again and we're back to the 0.01 drift finance found. Same for `round(amount, 2)` in the service: `round(2.675, 2)` is 2.67, not 2.68.\n\nPlease drop `asdecimal=False`, type these as `Mapped[Decimal]`, and have the services take and return `Decimal` (quantize to `Decimal(\"0.01\")` on the way in). The API schema can keep accepting JSON numbers for now, pydantic will coerce."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-01-14T16:50:00Z",
+          "body": "I kept float to avoid touching every call site, but you're right that it only moves the problem. There are only three callers of create_charge, I'll switch them."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-01-15T14:10:00Z",
+          "body": "Done: Decimal in the model and services, quantize in create_charge, tests updated."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-15T17:20:00Z",
+          "body": "Looks good."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "5359f25d2691bec1a0064b1a59c10604e64b0980"
+    },
+    {
+      "id": "t103-2",
+      "path": null,
+      "line": null,
+      "comments": [
+        {
+          "author": "ci-bot",
+          "created_at": "2026-01-14T10:31:00Z",
+          "body": "Alembic check: 1 new revision (0004), single head. Upgrade/downgrade round-trip passed on the test database."
+        }
+      ],
+      "resolution": "noise",
+      "decided_by": null,
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "number": 139,
+  "title": "Card-network fallback",
+  "body": "When the card network's status API is down we currently return a 500 from anything that checks network status (checkout banner, payout scheduler). This falls back to the network's public status page and maps its indicator onto our up/degraded/down values.\n\nThe status API has been flaky this month (three outages since 08-20), so this should cut a lot of noisy pages.\n\nAdds `card_network_status_page_url` to settings.",
+  "author": "carol",
+  "created_at": "2026-09-08T11:05:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "integrations",
+    "reliability"
+  ],
+  "base_sha": "9de5bc19a886835f5f3a551daef5ed769ab4bce1",
+  "head_sha": "04494547fe46cd18fb13a1d50e350dcc6606b06f",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/clients/card_network.py",
+      "status": "modified",
+      "additions": 9,
+      "deletions": 0,
+      "patch": "@@ -1,3 +1,5 @@\n+import requests\n+\n from app.clients.http import make_client\n from app.config import settings\n \n@@ -8,3 +10,10 @@\n     response = _client.get(f\"/v1/networks/{network}/status\")\n     response.raise_for_status()\n     return str(response.json()[\"status\"])\n+\n+\n+def status_page_indicator(network: str) -> str:\n+    # Public status page is a static JSON feed, no auth; requests is fine here for now.\n+    response = requests.get(f\"{settings.card_network_status_page_url}/{network}.json\", timeout=5)\n+    response.raise_for_status()\n+    return str(response.json()[\"status\"][\"indicator\"])"
+    },
+    {
+      "path": "app/config.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 0,
+      "patch": "@@ -9,4 +9,5 @@\n     stripe_api_key: str = \"\"\n     stripe_webhook_secret: str = \"\"\n     card_network_base_url: str = \"https://status.cardnet.example\"\n+    card_network_status_page_url: str = \"https://statuspage.cardnet.example/api/v2/networks\"\n     fraud_base_url: str = \"https://fraud.internal.example\""
+    },
+    {
+      "path": "app/services/network_health.py",
+      "status": "added",
+      "additions": 27,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,27 @@\n+import httpx\n+from fastapi import HTTPException\n+\n+from app.clients import card_network\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+# statuspage.io indicators -> our network status values\n+_INDICATOR_STATUS = {\"none\": \"up\", \"minor\": \"degraded\", \"major\": \"down\", \"critical\": \"down\"}\n+\n+\n+def current_status(network: str) -> str:\n+    \"\"\"Card network status; falls back to the public status page if the status API is down.\"\"\"\n+    try:\n+        return card_network.network_status(network)\n+    except httpx.HTTPError:\n+        log.warning(\"card_network_status_api_failed\", network=network)\n+\n+    try:\n+        indicator = card_network.status_page_indicator(network)\n+    except Exception:\n+        indicator = \"none\"\n+\n+    if indicator not in _INDICATOR_STATUS:\n+        raise HTTPException(status_code=502, detail=f\"unknown status indicator {indicator!r}\")\n+    return _INDICATOR_STATUS[indicator]"
+    },
+    {
+      "path": "tests/test_network_health.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+from unittest.mock import Mock\n+\n+import httpx\n+import pytest\n+\n+from app.clients import card_network\n+from app.services import network_health\n+\n+\n+@pytest.fixture\n+def status_api_down(monkeypatch):\n+    request = httpx.Request(\"GET\", \"https://status.cardnet.example/v1/networks/visa/status\")\n+    error = httpx.HTTPStatusError(\"503\", request=request, response=httpx.Response(503, request=request))\n+    monkeypatch.setattr(card_network, \"network_status\", Mock(side_effect=error))\n+\n+\n+def test_current_status__api_up__returns_api_status(monkeypatch):\n+    monkeypatch.setattr(card_network, \"network_status\", Mock(return_value=\"degraded\"))\n+\n+    assert network_health.current_status(\"visa\") == \"degraded\"\n+\n+\n+def test_current_status__api_down_page_major__returns_down(status_api_down, monkeypatch):\n+    monkeypatch.setattr(card_network, \"status_page_indicator\", Mock(return_value=\"major\"))\n+\n+    assert network_health.current_status(\"visa\") == \"down\""
+    }
+  ]
+}

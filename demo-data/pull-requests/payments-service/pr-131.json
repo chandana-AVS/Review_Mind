@@ -1,0 +1,32 @@
+{
+  "number": 131,
+  "title": "Merchant balance endpoint",
+  "body": "Adds `GET /merchants/{id}/balance` for the merchant dashboard (DASH-14): available and pending amounts per currency.",
+  "author": "erin",
+  "created_at": "2026-08-03T10:00:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "merchants"
+  ],
+  "base_sha": "defe06f0d30f173ac530fac67cbf951316b38217",
+  "head_sha": "f7c1acfd152a3e92e05918c45f3f859d9d5a9286",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/balances.py",
+      "status": "added",
+      "additions": 30,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,30 @@\n+from datetime import datetime\n+\n+from fastapi import APIRouter\n+\n+from app.api.schemas import BalanceResponse\n+from app.db import session_scope\n+from app.repos import balances as balance_repo\n+\n+router = APIRouter(prefix=\"/merchants/{merchant_id}/balance\", tags=[\"balances\"])\n+\n+\n+@router.get(\"\", response_model=BalanceResponse)\n+def get_balance(merchant_id: str) -> BalanceResponse:\n+    with session_scope() as session:\n+        totals = balance_repo.totals_by_currency(session, merchant_id)\n+    as_of = datetime.utcnow()\n+    return BalanceResponse(\n+        merchant_id=merchant_id,\n+        as_of=as_of,\n+        balances=[_format_balance(t) for t in totals],\n+    )\n+\n+\n+def _format_balance(totals) -> dict[str, object]:\n+    available = totals.captured_cents - totals.refunded_cents\n+    return {\n+        \"currency\": totals.currency,\n+        \"available_cents\": available,\n+        \"pending_cents\": totals.pending_payout_cents,\n+    }"
+    },
+    {
+      "path": "tests/test_balances.py",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,16 @@\n+from app.api.balances import _format_balance\n+from tests.factories import make_balance_totals\n+\n+\n+def test_format_balance__captured_and_refunded__returns_available(fake_repos):\n+    totals = make_balance_totals(currency=\"EUR\", captured_cents=12_500, refunded_cents=2_500)\n+\n+    result = _format_balance(totals)\n+\n+    assert result[\"available_cents\"] == 10_000\n+\n+\n+def test_format_balance__pending_payout__reports_pending():\n+    totals = make_balance_totals(currency=\"EUR\", captured_cents=5_000, pending_payout_cents=1_500)\n+\n+    assert _format_balance(totals)[\"pending_cents\"] == 1_500"
+    }
+  ]
+}

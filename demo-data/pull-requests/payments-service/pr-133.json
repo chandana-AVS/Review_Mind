@@ -1,0 +1,40 @@
+{
+  "number": 133,
+  "title": "Debit the dispute fee from the merchant balance",
+  "body": "When a dispute is opened the network charges us a flat fee (+0.4% for some programs), which we pass on to the merchant. Adds `POST /disputes/{id}/fee`, called by the dispute consumer.",
+  "author": "carol",
+  "created_at": "2026-08-11T10:20:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "disputes",
+    "money"
+  ],
+  "base_sha": "f0f4fd47dfdfadc4ba1c31630d0bf46ed6c2bfa3",
+  "head_sha": "1e71014d59b5fa3b601d279fd4e1bfea159dd602",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/disputes.py",
+      "status": "added",
+      "additions": 12,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,12 @@\n+from fastapi import APIRouter\n+\n+from app.api.schemas import DisputeFeeResponse\n+from app.services import dispute_fees\n+\n+router = APIRouter(prefix=\"/disputes\", tags=[\"disputes\"])\n+\n+\n+@router.post(\"/{dispute_id}/fee\", response_model=DisputeFeeResponse, status_code=201)\n+def debit_fee(dispute_id: str) -> DisputeFeeResponse:\n+    fee_cents = dispute_fees.debit_dispute_fee(dispute_id)\n+    return DisputeFeeResponse(dispute_id=dispute_id, fee_cents=fee_cents)"
+    },
+    {
+      "path": "app/services/dispute_fees.py",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,33 @@\n+from fastapi import HTTPException\n+\n+from app.db import session_scope\n+from app.domain.money import apply_bps\n+from app.repos import disputes as dispute_repo\n+from app.repos import ledger as ledger_repo\n+from app.utils import clock\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+NETWORK_FEES_CENTS = {\"visa\": 1_500, \"mastercard\": 1_500, \"amex\": 2_000}\n+DISPUTE_FEE_BPS = 40\n+\n+\n+def debit_dispute_fee(dispute_id: str) -> int:\n+    with session_scope() as session:\n+        dispute = dispute_repo.get(session, dispute_id)\n+        if dispute is None:\n+            raise HTTPException(status_code=404, detail=\"dispute not found\")\n+        if dispute.fee_debited_at is not None:\n+            raise HTTPException(status_code=409, detail=\"fee already debited\")\n+        fee_cents = _fee_for(dispute.network) + apply_bps(dispute.amount_cents, DISPUTE_FEE_BPS)\n+        ledger_repo.debit_merchant(\n+            session, dispute.merchant_id, fee_cents, dispute.currency, reference=dispute.id\n+        )\n+        dispute_repo.mark_fee_debited(session, dispute.id, at=clock.now())\n+    log.info(\"dispute_fee_debited\", dispute_id=dispute_id, fee_cents=fee_cents)\n+    return fee_cents\n+\n+\n+def _fee_for(network: str) -> int:\n+    return NETWORK_FEES_CENTS.get(network, 1_500)"
+    },
+    {
+      "path": "tests/test_dispute_fees.py",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,16 @@\n+from app.services import dispute_fees\n+from tests.factories import make_dispute\n+\n+\n+def test_debit_dispute_fee__visa_dispute__charges_flat_fee_plus_bps(fake_repos, frozen_clock):\n+    fake_repos.disputes.add(make_dispute(network=\"visa\", amount_cents=20_000))\n+\n+    fee = dispute_fees.debit_dispute_fee(\"dp_test_1\")\n+\n+    assert fee == 1_580\n+\n+\n+def test_debit_dispute_fee__amex_dispute__uses_amex_flat_fee(fake_repos, frozen_clock):\n+    fake_repos.disputes.add(make_dispute(network=\"amex\", amount_cents=10_000))\n+\n+    assert dispute_fees.debit_dispute_fee(\"dp_test_1\") == 2_040"
+    }
+  ]
+}

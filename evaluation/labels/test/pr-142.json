@@ -1,0 +1,94 @@
+{
+  "pr": 142,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "142-F1",
+      "kind": "convention",
+      "convention": "C6",
+      "path": "app/services/webhooks.py",
+      "line_range": [
+        44,
+        44
+      ],
+      "rationale": "Service raises FastAPI HTTPException; services raise app.errors domain errors and the API layer maps them.",
+      "expected_fix": "Raise a domain error from app.errors (or log and ignore the event) instead of HTTPException."
+    },
+    {
+      "id": "142-F2",
+      "kind": "convention",
+      "convention": "C5",
+      "path": "app/services/webhooks.py",
+      "line_range": [
+        40,
+        40
+      ],
+      "rationale": "f-string log message instead of a snake_case event with keyword fields.",
+      "expected_fix": "log.info(\"stripe_payout_event_ignored\", event_id=event.id, event_type=event.type)"
+    },
+    {
+      "id": "142-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/webhooks.py",
+      "line_range": [
+        49,
+        51
+      ],
+      "rationale": "Dedupe happens after the side effect: a redelivered payout.failed event credits the merchant balance again (and resets status) before insert_if_new reports a duplicate.",
+      "expected_fix": "Check/insert the event id first and return early on duplicates, as handle_stripe_event does."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "142-X1",
+      "noise": null,
+      "exception": "E2",
+      "path": "app/api/webhooks.py",
+      "line_range": [
+        18,
+        19
+      ],
+      "trap": "This POST changes money state but has no @idempotent decorator.",
+      "reject_reason": "Stripe webhooks are the exception: no Idempotency-Key from Stripe, we dedupe on the event id."
+    },
+    {
+      "id": "142-X2",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/api/webhooks.py",
+      "line_range": [
+        24,
+        24
+      ],
+      "trap": "Wrap the service call in try/except and log the event id on failure before re-raising.",
+      "reject_reason": "Let it propagate; the error middleware already logs it and Stripe will retry. Wrapping double-logs."
+    },
+    {
+      "id": "142-X3",
+      "noise": "N5",
+      "exception": null,
+      "path": "app/services/webhooks.py",
+      "line_range": [
+        54,
+        54
+      ],
+      "trap": "The merchant notification call has no retry; add retry with exponential backoff.",
+      "reject_reason": "Our clients are built on make_client(), which already retries. Extra retry layers gave us INC-12."
+    },
+    {
+      "id": "142-X4",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_stripe_payout_webhooks.py",
+      "line_range": [
+        10,
+        10
+      ],
+      "trap": "Type the payout_event fixture and its build() factory (return Callable[..., SimpleNamespace]).",
+      "reject_reason": "We don't add type hints in tests; mypy excludes tests/."
+    }
+  ],
+  "drift_trap": null
+}

@@ -1,0 +1,23 @@
+{
+  "pr": 128,
+  "threads": {
+    "t128-1": {
+      "convention": "C9",
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t128-2": {
+      "convention": null,
+      "noise": "N2",
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

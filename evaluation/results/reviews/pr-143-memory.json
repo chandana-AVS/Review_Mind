@@ -1,0 +1,377 @@
+{
+  "pr": 143,
+  "title": "FX conversion for multi-currency refunds",
+  "bank": "reviewmind-acme-payments",
+  "use_memory": true,
+  "created_at": "2026-09-29T14:59:22.613331+00:00",
+  "seconds": {
+    "recall_s": 0.8,
+    "reflect_s": 313.1,
+    "total_s": 313.9
+  },
+  "signals": {
+    "outbound_http": [
+      "app/clients/fx_quotes.py:1",
+      "app/clients/fx_quotes.py:7"
+    ],
+    "money": [
+      "app/clients/fx_quotes.py:6",
+      "app/clients/fx_quotes.py:9",
+      "app/services/refund_fx.py:1",
+      "app/services/refund_fx.py:7",
+      "app/services/refund_fx.py:8",
+      "app/services/refund_fx.py:9",
+      "app/services/refund_fx.py:10",
+      "app/services/refund_fx.py:11",
+      "app/services/refund_fx.py:12",
+      "app/services/refund_fx.py:13",
+      "app/services/refund_fx.py:16",
+      "app/services/refund_fx.py:17",
+      "app/services/refund_fx.py:20",
+      "app/services/refund_fx.py:21",
+      "tests/test_refund_fx.py:5",
+      "tests/test_refund_fx.py:6",
+      "tests/test_refund_fx.py:9",
+      "tests/test_refund_fx.py:12",
+      "tests/test_refund_fx.py:17",
+      "tests/test_refund_fx.py:20"
+    ],
+    "private_helper": [
+      "app/services/refund_fx.py:16",
+      "app/services/refund_fx.py:20"
+    ]
+  },
+  "recall_probes": [
+    "outbound_http",
+    "retry",
+    "money",
+    "private_helper",
+    "tests"
+  ],
+  "memories_recalled": 15,
+  "team_brief": [
+    {
+      "rule": "ADR-006: All outbound HTTP calls must use make_client() from app.clients.http for consistent timeouts, retries, and request ID propagation (applies to app/clients/fx_quotes.py line 7)",
+      "evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-007: No Decimal or float in app/ directory; all money calculations use integer minor units with helpers from app.domain.money (applies to app/services/refund_fx.py throughout)",
+      "evidence": [
+        {
+          "label": "M8",
+          "memory_id": "f7bb21bd-0a62-4755-ab7b-5b317f16e117",
+          "type": "world",
+          "text": "erin suggested using Decimal for FX conversion intermediate results in payments-service PR #130, but bob rejected it citing ADR-007's mandate for int minor units with integer micro-rates | When: July 22, 2026 | Involving: erin (reviewer), bob (author, decided rejection) | ADR-007 already addresses precision with int-based approach; team moved away from Decimal to avoid rounding mismatches",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        },
+        {
+          "label": "M9",
+          "memory_id": "c9a9053b-cdb9-47f8-89c4-a59f0a11f660",
+          "type": "world",
+          "text": "ADR-007 (established in PR #112) mandates all money values in payments-service stay in int minor units, avoiding Decimal; rounding happens once in round_half_even_div helper | When: Before April 15, 2026 | Involving: Acme Payments team | Prevents int-Decimal boundary issues; ensures ledger and bank agree to the unit",
+          "document_id": "pr:payments-service:118",
+          "sources": [
+            "PR #118"
+          ]
+        },
+        {
+          "label": "M10",
+          "memory_id": "6408197d-3c3b-42ef-aab0-db005b4c541c",
+          "type": "world",
+          "text": "Acme Payments team adopted ADR-007, deciding to store and compute all money amounts as integer minor units (amount_cents: int), reversing their January 2026 move to Decimal | When: March 9-11, 2026 (PR #112 opened March 9, merged March 11) | Involving: bob (PR author), alice and carol (approved), frank (commented), team decision from architecture sync | Decimal caused JSON serialization inconsistencies breaking merchant reconciliation, Stripe and bank partners use integer minor units requiring conversions, JPY/KWD rounding mismatches between ledger and Stripe, and three bugs from mixing Decimal and float",
+          "document_id": "pr:payments-service:112",
+          "sources": [
+            "PR #112"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Private helper functions (underscore-prefixed) don't require docstrings; name and implementation serve as documentation (correctly applied to _to_major and _to_minor)",
+      "evidence": [
+        {
+          "label": "M11",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M13",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Test files don't use type annotations; mypy excludes tests/ directory (correctly applied in tests/test_refund_fx.py)",
+      "evidence": [
+        {
+          "label": "M14",
+          "memory_id": "d1bf8fbb-652d-49ba-a42e-13eb76fabdac",
+          "type": "world",
+          "text": "In PR #128 thread t128-2, frank's suggestion to add type annotations to test file (db_session annotation and -> None return type) was rejected by dan because team doesn't type tests | When: 2026-07-06 | Involving: frank (reviewer), dan (author) | Team convention excludes tests/ from mypy",
+          "document_id": "pr:payments-service:128",
+          "sources": [
+            "PR #128"
+          ]
+        },
+        {
+          "label": "M15",
+          "memory_id": "bb535ae3-53ec-4e53-85e0-cf3caa68a6cc",
+          "type": "world",
+          "text": "Team does not add type hints to test functions or fixtures; mypy excludes tests/ (established when bob rejected frank's suggestion) | When: June 04, 2026 | Involving: frank (suggested), bob (rejected) | mypy excludes tests/",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "title": "ADR-006 violation: inline HTTP call instead of make_client()",
+      "file": "app/clients/fx_quotes.py",
+      "line": 7,
+      "severity": "high",
+      "category": "HTTP client standards",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "Using inline httpx.get() violates ADR-006, which requires all outbound HTTP to use make_client() from app.clients.http. Direct HTTP library calls bypass standardized timeouts, retry logic, request ID propagation, and metrics.",
+      "recommendation": "Create a module-level _client using make_client('fx-service') and use it for all HTTP calls. This provides 3s connect timeout, 10s read timeout, 2 retries with jittered backoff on connect errors and 502/503/504, and request-id propagation per ADR-006.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ],
+      "sources": [
+        "ADR-006",
+        "PR #123",
+        "PR #127"
+      ]
+    },
+    {
+      "title": "ADR-007 violation: Decimal usage in app/ directory",
+      "file": "app/services/refund_fx.py",
+      "line": 1,
+      "severity": "high",
+      "category": "Money representation",
+      "classification": "REPEATED_ISSUE",
+      "basis": "hindsight_memory",
+      "explanation": "Using Decimal for FX conversion intermediate calculations violates ADR-007's prohibition on Decimal/float in app/ directory. This exact scenario (Decimal for FX conversion) was rejected in PR #130 where erin proposed it and bob rejected citing ADR-007's mandate for integer micro-rates.",
+      "recommendation": "Use integer arithmetic throughout with micro-rates (e.g., represent rate 1.0842 as 10842 micro-units per unit). Follow the pattern from apply_bps and round_half_even_div helpers in app.domain.money for consistent integer-based calculations.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M8",
+          "memory_id": "f7bb21bd-0a62-4755-ab7b-5b317f16e117",
+          "type": "world",
+          "text": "erin suggested using Decimal for FX conversion intermediate results in payments-service PR #130, but bob rejected it citing ADR-007's mandate for int minor units with integer micro-rates | When: July 22, 2026 | Involving: erin (reviewer), bob (author, decided rejection) | ADR-007 already addresses precision with int-based approach; team moved away from Decimal to avoid rounding mismatches",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        },
+        {
+          "label": "M9",
+          "memory_id": "c9a9053b-cdb9-47f8-89c4-a59f0a11f660",
+          "type": "world",
+          "text": "ADR-007 (established in PR #112) mandates all money values in payments-service stay in int minor units, avoiding Decimal; rounding happens once in round_half_even_div helper | When: Before April 15, 2026 | Involving: Acme Payments team | Prevents int-Decimal boundary issues; ensures ledger and bank agree to the unit",
+          "document_id": "pr:payments-service:118",
+          "sources": [
+            "PR #118"
+          ]
+        },
+        {
+          "label": "M10",
+          "memory_id": "6408197d-3c3b-42ef-aab0-db005b4c541c",
+          "type": "world",
+          "text": "Acme Payments team adopted ADR-007, deciding to store and compute all money amounts as integer minor units (amount_cents: int), reversing their January 2026 move to Decimal | When: March 9-11, 2026 (PR #112 opened March 9, merged March 11) | Involving: bob (PR author), alice and carol (approved), frank (commented), team decision from architecture sync | Decimal caused JSON serialization inconsistencies breaking merchant reconciliation, Stripe and bank partners use integer minor units requiring conversions, JPY/KWD rounding mismatches between ledger and Stripe, and three bugs from mixing Decimal and float",
+          "document_id": "pr:payments-service:112",
+          "sources": [
+            "PR #112"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #112",
+        "PR #118",
+        "PR #130"
+      ]
+    },
+    {
+      "title": "Hardcoded currency exponent assumes all currencies have 2 decimal places",
+      "file": "app/services/refund_fx.py",
+      "line": 21,
+      "severity": "high",
+      "category": "Currency handling",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "_to_minor hardcodes * 100, which only works for currencies with exponent 2 (USD, EUR, GBP). This will produce incorrect amounts for JPY (exponent 0), KWD (exponent 3), and other non-standard exponent currencies.",
+      "recommendation": "Use 10 ** exponent(currency) instead of hardcoded 100. The code already correctly uses exponent() in _to_major (line 17), showing awareness that different currencies have different exponents.",
+      "confidence": 0.95,
+      "memory_evidence": [],
+      "sources": []
+    }
+  ],
+  "suppressed": [
+    {
+      "suggestion": "Add docstrings to _to_major and _to_minor private helper functions",
+      "file": "app/services/refund_fx.py",
+      "line": 16,
+      "reason": "Team convention established in PRs #102, #104, #122, #129: private helpers are self-documenting through name and implementation; only public service functions require docstrings.",
+      "evidence": [
+        "M11",
+        "M12",
+        "M13"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M11",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M12",
+          "memory_id": "056e37cf-7dd0-48e3-a5fc-1a64fcf9fac4",
+          "type": "world",
+          "text": "frank suggested adding docstring to _to_code private helper in PR #129 thread t129-2; dan rejected citing team convention that private helpers don't need docstrings; erin accepted the rejection | When: 2026-07-14 | Involving: frank (suggested), dan (rejected), erin (author) | Team convention is that name and body document private helpers",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M13",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #122",
+        "PR #129"
+      ]
+    },
+    {
+      "suggestion": "Add type annotations to test functions (e.g., def test_convert_refund_amount__same_currency__returns_amount_unchanged() -> None:)",
+      "file": "tests/test_refund_fx.py",
+      "line": 5,
+      "reason": "Team explicitly excludes tests/ from mypy and doesn't use type hints in test functions or fixtures; frank's suggestions to add them rejected in PRs #111, #125, #128.",
+      "evidence": [
+        "M14",
+        "M15"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M14",
+          "memory_id": "d1bf8fbb-652d-49ba-a42e-13eb76fabdac",
+          "type": "world",
+          "text": "In PR #128 thread t128-2, frank's suggestion to add type annotations to test file (db_session annotation and -> None return type) was rejected by dan because team doesn't type tests | When: 2026-07-06 | Involving: frank (reviewer), dan (author) | Team convention excludes tests/ from mypy",
+          "document_id": "pr:payments-service:128",
+          "sources": [
+            "PR #128"
+          ]
+        },
+        {
+          "label": "M15",
+          "memory_id": "bb535ae3-53ec-4e53-85e0-cf3caa68a6cc",
+          "type": "world",
+          "text": "Team does not add type hints to test functions or fixtures; mypy excludes tests/ (established when bob rejected frank's suggestion) | When: June 04, 2026 | Involving: frank (suggested), bob (rejected) | mypy excludes tests/",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #125",
+        "PR #128"
+      ]
+    }
+  ],
+  "dropped_unsupported": [],
+  "reflect_based_on": []
+}

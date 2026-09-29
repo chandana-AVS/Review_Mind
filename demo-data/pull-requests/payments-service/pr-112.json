@@ -1,0 +1,47 @@
+{
+  "number": 112,
+  "title": "ADR-007: store and compute money as integer minor units",
+  "body": "Proposal agreed at last week's arch sync. TL;DR: `amount_cents: int` everywhere, no Decimal.\n\nWhy we're reversing the January move to Decimal:\n- JSON: Decimal serialises as \"10.50\" in some paths and 10.5 in others; two merchants' reconciliation broke\n- Stripe and our bank partners speak integer minor units; we converted back and forth at every edge\n- JPY/KWD rounding disagreed between the ledger and Stripe\n- three bugs from mixing Decimal and float\n\nThis PR: ADR, `app/domain/money.py` helpers, migration 0012 (expand step: adds `amount_cents`; the old columns are dropped later), and converts `fees.py` as the first caller. Services move over in follow-ups this sprint.",
+  "author": "bob",
+  "created_at": "2026-03-09T10:12:00Z",
+  "merged_at": "2026-03-11T16:40:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture",
+    "money"
+  ],
+  "base_sha": "594958c4bbc31a7e271b274e96fa75d73212ec64",
+  "head_sha": "0a051d44061323911458ec4b3c65d2dab78bd251",
+  "adr": "ADR-007",
+  "files": [
+    {
+      "path": "docs/adr/ADR-007-integer-minor-units.md",
+      "status": "added",
+      "additions": 15,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,15 @@\n+# ADR-007: Money as integer minor units\n+\n+- Status: Accepted. Supersedes the \"use Decimal\" guidance from #103 and #106\n+- Date: 2026-03-10\n+- Deciders: alice, bob, carol\n+\n+## Context\n+Since moving from float to Decimal in January: Decimal values serialise inconsistently\n+(\"10.50\" vs 10.5), the ledger and Stripe (integer minor units) disagree on rounding for JPY/KWD,\n+and three bugs came from Decimal + float mixing.\n+\n+## Decision\n+- Money is `int` minor units: `amount_cents: int` + `currency: str`, whatever the exponent.\n+- No `Decimal` or `float` for money in `app/`. Fee maths uses `app.domain.money` helpers.\n+- Display formatting happens only in API response schemas."
+    },
+    {
+      "path": "app/domain/money.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+\"\"\"Integer minor-unit money helpers (ADR-007).\"\"\"\n+\n+ZERO_DECIMAL_CURRENCIES = frozenset({\"JPY\", \"KRW\", \"VND\"})\n+THREE_DECIMAL_CURRENCIES = frozenset({\"KWD\", \"BHD\", \"OMR\"})\n+\n+\n+def round_half_even_div(numerator: int, denominator: int) -> int:\n+    quotient, remainder = divmod(numerator, denominator)\n+    twice = remainder * 2\n+    if twice > denominator or (twice == denominator and quotient % 2 == 1):\n+        quotient += 1\n+    return quotient\n+\n+\n+def apply_bps(amount_cents: int, bps: int) -> int:\n+    \"\"\"Return amount * bps / 10_000, rounded half-even. 1 bps = 0.01%.\"\"\"\n+    return round_half_even_div(amount_cents * bps, 10_000)\n+\n+\n+def exponent(currency: str) -> int:\n+    if currency in ZERO_DECIMAL_CURRENCIES:\n+        return 0\n+    if currency in THREE_DECIMAL_CURRENCIES:\n+        return 3\n+    return 2"
+    },
+    {
+      "path": "migrations/versions/0012_amounts_to_minor_units.py",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,22 @@\n+\"\"\"amounts to integer minor units (ADR-007)\n+\n+Revision ID: 0012\n+Revises: 0011\n+\"\"\"\n+\n+import sqlalchemy as sa\n+from alembic import op\n+\n+revision = \"0012\"\n+down_revision = \"0011\"\n+\n+\n+def upgrade() -> None:\n+    for table in (\"charges\", \"refunds\", \"payouts\"):\n+        op.add_column(table, sa.Column(\"amount_cents\", sa.BigInteger(), nullable=True))\n+        op.execute(f\"UPDATE {table} SET amount_cents = ROUND(amount * 100)\")\n+\n+\n+def downgrade() -> None:\n+    for table in (\"charges\", \"refunds\", \"payouts\"):\n+        op.drop_column(table, \"amount_cents\")"
+    },
+    {
+      "path": "app/services/fees.py",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 4,
+      "patch": "@@ -1,7 +1,7 @@\n-from decimal import ROUND_HALF_EVEN, Decimal\n+from app.domain.money import apply_bps\n \n-PLATFORM_FEE_RATE = Decimal(\"0.029\")\n+PLATFORM_FEE_BPS = 290\n \n \n-def platform_fee(amount: Decimal) -> Decimal:\n-    return (amount * PLATFORM_FEE_RATE).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_EVEN)\n+def platform_fee(amount_cents: int) -> int:\n+    return apply_bps(amount_cents, PLATFORM_FEE_BPS)"
+    }
+  ]
+}

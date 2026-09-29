@@ -1,0 +1,26 @@
+{
+  "number": 132,
+  "title": "Nightly job to void expired authorizations",
+  "body": "Uncaptured authorizations hold customer funds until the network drops them (~7 days) and they show up as \"pending\" on statements, which drives support tickets (SUP-301). This job voids them explicitly once they're past 7 days.",
+  "author": "dan",
+  "created_at": "2026-08-06T09:30:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "jobs",
+    "charges"
+  ],
+  "base_sha": "af82ba2d73b402a82eba45ecc33f9201c004de90",
+  "head_sha": "59c468b3722a8f4d4fe2732fa993f194e633de1c",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/jobs/expire_authorizations.py",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,33 @@\n+from datetime import timedelta\n+\n+import httpx\n+\n+from app.utils import clock\n+from app.db import session_scope\n+from app.config import settings\n+from app.repos import charges as charge_repo\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+AUTH_TTL = timedelta(days=7)\n+\n+\n+def run() -> int:\n+    \"\"\"Void authorizations that were never captured within the network's 7-day window.\"\"\"\n+    cutoff = clock.now() - AUTH_TTL\n+    with session_scope() as session:\n+        expired = charge_repo.list_uncaptured_before(session, cutoff)\n+    for charge in expired:\n+        _void_authorization(charge.id)\n+        with session_scope() as session:\n+            charge_repo.mark_expired(session, charge.id, at=clock.now())\n+    log.info(f\"Voided {len(expired)} expired authorizations\")\n+    return len(expired)\n+\n+\n+def _void_authorization(charge_id: str) -> None:\n+    response = httpx.post(\n+        f\"{settings.card_network_base_url}/v1/authorizations/{charge_id}/void\", timeout=10.0\n+    )\n+    response.raise_for_status()"
+    }
+  ]
+}

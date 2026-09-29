@@ -1,0 +1,147 @@
+{
+  "pr": 125,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-06-03T14:10:00Z",
+      "body": "Welcome Erin! A couple of house rules inline, all quick."
+    },
+    {
+      "reviewer": "carol",
+      "state": "changes_requested",
+      "submitted_at": "2026-06-03T15:40:00Z",
+      "body": "Welcome! Same, a few conventions."
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-06-03T17:00:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-06-05T10:00:00Z",
+      "body": "Great first PR."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-06-05T11:30:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t125-1",
+      "path": "app/api/saved_cards.py",
+      "line": 13,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-06-03T13:55:00Z",
+          "body": "The handler opened a session and inserted the card directly. Here we keep handlers thin: they call one service function, and the service owns the session and the queries (ADR-003, and CONTRIBUTING's Layout section). Makes the logic reusable from the jobs too."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-03T15:05:00Z",
+          "body": "Ah, at my last company we did it in the route, but I see the point. Moved into `saved_cards.save_card`."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "def8df8f94517004cadfa7ca3fdc6313048f4378"
+    },
+    {
+      "id": "t125-2",
+      "path": "app/api/saved_cards.py",
+      "line": 11,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-06-03T14:05:00Z",
+          "body": "Creating a card isn't moving money, but it does call the tokenizer, and a double submit from checkout would create two cards. We decorate client-facing POSTs like this with `@idempotent` (ADR-004)."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-03T15:07:00Z",
+          "body": "Added."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "5dac495e822b73fdd5ef6e21eaa1ec2182ff4ea6"
+    },
+    {
+      "id": "t125-3",
+      "path": "app/services/saved_cards.py",
+      "line": 22,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-06-03T15:30:00Z",
+          "body": "This was `datetime.utcnow()`. We always use `app.utils.clock.now()`: it's tz-aware UTC and the `frozen_clock` fixture can control it in tests."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-03T16:00:00Z",
+          "body": "Done, and I used frozen_clock in the test to assert on it."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "carol",
+      "rejection_reason": null,
+      "follow_up_commit": "e96174e12b14242314bf359b9f0022305327071b"
+    },
+    {
+      "id": "t125-4",
+      "path": "tests/test_saved_cards.py",
+      "line": 5,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-06-03T15:35:00Z",
+          "body": "Test names follow `test_<unit>__<scenario>__<expected>` (see CONTRIBUTING), and please build the customer with `tests/factories.py` rather than constructing it inline."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-03T16:02:00Z",
+          "body": "Renamed both and switched to make_customer."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "carol",
+      "rejection_reason": null,
+      "follow_up_commit": "2290afcd4d7d03e44c9f974b0efa0c47c6da28c9"
+    },
+    {
+      "id": "t125-5",
+      "path": "tests/test_saved_cards.py",
+      "line": 15,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-06-03T16:55:00Z",
+          "body": "Add type hints to the test functions and fixtures (`fake_repos: FakeRepos`, `-> None`, etc.)."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-04T09:10:00Z",
+          "body": "Happy to. Is that the convention? The existing tests don't seem to have them."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-06-04T10:20:00Z",
+          "body": "It isn't: we don't type tests, and mypy excludes tests/. Leave them as they are."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "We don't type tests; mypy excludes tests/.",
+      "follow_up_commit": null
+    }
+  ]
+}

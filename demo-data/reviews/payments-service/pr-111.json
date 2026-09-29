@@ -1,0 +1,72 @@
+{
+  "pr": 111,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-03-02T14:05:00Z",
+      "body": "Blocking on idempotency, rest looks good."
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-03-02T16:30:00Z",
+      "body": "Minor stuff on the tests."
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-03-03T11:20:00Z",
+      "body": "Thanks!"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t111-1",
+      "path": "app/api/payouts.py",
+      "line": 11,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-03-02T14:02:00Z",
+          "body": "This moves money, so it needs `@idempotent` (ADR-004). Without it a mobile retry after a timeout creates a second payout, the same way we double-refunded in January."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-03-02T15:10:00Z",
+          "body": "Argh, I even reviewed the ADR. Added, plus a test for the replay path."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "f12b16d0424b6e7540668240d1b751b4ad029f0d"
+    },
+    {
+      "id": "t111-2",
+      "path": "tests/test_payouts.py",
+      "line": 7,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-03-02T16:25:00Z",
+          "body": "These test functions and the fixtures should have type annotations. mypy strict everywhere or it's not strict."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-03-02T17:40:00Z",
+          "body": "We deliberately don't type tests. mypy excludes tests/ in pyproject, and fixture types add a lot of noise for no real safety. Leaving as is."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-03-03T11:18:00Z",
+          "body": "Agree with Carol."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "carol",
+      "rejection_reason": "We don't type tests; mypy excludes tests/ on purpose.",
+      "follow_up_commit": null
+    }
+  ]
+}

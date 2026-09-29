@@ -1,0 +1,32 @@
+{
+  "number": 129,
+  "title": "Normalise refund reasons to a fixed set of codes",
+  "body": "Refund reasons were free text, so finance can't report on them. This maps inputs to four codes (same as Stripe's) and rejects unknown ones. The support tool already sends one of these strings; the API change is backwards compatible for existing clients.",
+  "author": "erin",
+  "created_at": "2026-07-14T09:30:00Z",
+  "merged_at": "2026-07-16T11:00:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "refunds"
+  ],
+  "base_sha": "cbb5d348d0770f7ff3c623a6933e73e260d0f201",
+  "head_sha": "31b07de7ba0deb195332d48e79f3b13aebd9aa95",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/refund_reasons.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+from app import errors\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+REASON_CODES = {\n+    \"duplicate\": \"Duplicate charge\",\n+    \"fraudulent\": \"Fraudulent charge\",\n+    \"requested_by_customer\": \"Requested by customer\",\n+    \"product_not_received\": \"Product not received\",\n+}\n+\n+\n+def normalize_reason(raw: str | None) -> str | None:\n+    if raw is None:\n+        return None\n+    code = _to_code(raw)\n+    if code not in REASON_CODES:\n+        log.warning(\"refund_reason_unknown\", raw_reason=raw)\n+        raise errors.Conflict(f\"unknown refund reason {raw!r}\")\n+    return code\n+\n+\n+def _to_code(raw: str) -> str:\n+    return raw.strip().lower().replace(\" \", \"_\").replace(\"-\", \"_\")"
+    },
+    {
+      "path": "app/services/refunds.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 0,
+      "patch": "@@ -3,4 +3,5 @@\n from app.domain.models import Refund\n from app.repos import charges as charge_repo\n from app.repos import refunds as refund_repo\n+from app.services.refund_reasons import normalize_reason\n from app.utils import clock"
+    }
+  ]
+}

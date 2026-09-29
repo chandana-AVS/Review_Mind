@@ -1,0 +1,77 @@
+{
+  "pr": 107,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-02-04T15:10:00Z",
+      "body": "Yes please. This would have saved ops an afternoon."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-02-05T10:30:00Z",
+      "body": "Approving, one question inline for the record."
+    },
+    {
+      "reviewer": "dan",
+      "state": "commented",
+      "submitted_at": "2026-02-05T11:45:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t107-1",
+      "path": "docs/adr/ADR-004-idempotency-keys.md",
+      "line": 14,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-02-05T10:22:00Z",
+          "body": "For the record, what about inbound webhooks? We'll have the Stripe receiver at some point and those are POSTs that move money too (payout.paid, charge.refunded). Stripe won't send our `Idempotency-Key` header, so this decorator would 400 every event."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-02-05T11:05:00Z",
+          "body": "Right, webhooks are a different case. This rule is about our own clients retrying our API. Provider webhooks don't carry our key, but every Stripe event has a unique event id, so the receiver dedupes on that instead. We'll write that down when we build the receiver. For every endpoint our clients call, the rule is simple: moves money, gets `@idempotent`."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-05T11:20:00Z",
+          "body": "Makes sense, thanks."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    },
+    {
+      "id": "t107-2",
+      "path": "app/utils/idempotency.py",
+      "line": 17,
+      "comments": [
+        {
+          "author": "dan",
+          "created_at": "2026-02-05T11:40:00Z",
+          "body": "Will the 400 break older app versions that don't send the header yet? Or is the mobile release going out before this merges?"
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-02-05T13:15:00Z",
+          "body": "Only refunds is decorated in this PR. The mobile app has sent the header on refunds since\n4.12, and older versions are under 2% of refund traffic; a 400 for them beats another\nduplicate refund. Charges and captures wait for the 02-09 release."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-02-05T13:30:00Z",
+          "body": "Got it, thanks."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

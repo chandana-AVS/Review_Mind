@@ -1,0 +1,2094 @@
+{
+  "version": 1,
+  "team": "acme-payments",
+  "repository": "payments-service",
+  "taxonomy": {
+    "conventions": {
+      "C1": "Money is int minor units (*_cents); no Decimal/float (ADR-007)",
+      "C2": "API handlers never open DB sessions or query; call services (ADR-003)",
+      "C3": "Outbound HTTP only via app.clients.http.make_client (ADR-006)",
+      "C4": "Money-moving POST endpoints use @idempotent (ADR-004)",
+      "C5": "structlog snake_case events with kwargs; no f-strings; PII via redact()",
+      "C6": "Services raise app.errors domain errors; HTTPException only in app/api",
+      "C7": "Time from app.utils.clock.now(); never datetime.now()/utcnow()",
+      "C8": "Tests named test_<unit>__<scenario>__<expected>; use tests/factories.py",
+      "C9": "Expand/contract migrations; no drop/rename with code change (ADR-008)",
+      "C10": "Config via app.config.settings; no os.environ in app/"
+    },
+    "noise": {
+      "N1": "Docstrings on private helpers",
+      "N2": "Type hints in tests",
+      "N3": "Import order / formatting nits",
+      "N4": "Use Decimal for money",
+      "N5": "Add retry/backoff around client calls",
+      "N6": "Extract magic numbers in tests into constants",
+      "N7": "Wrap service calls in try/except that logs and re-raises"
+    },
+    "exceptions": {
+      "E1": "Health/metrics endpoints may touch DB/Redis directly",
+      "E2": "Stripe webhook receiver dedupes on event id; no @idempotent",
+      "E3": "scripts/ one-offs may use print and os.environ"
+    },
+    "conflicts": {
+      "K1": "Money: Decimal (Jan-Feb) superseded by int minor units (ADR-007, Mar)",
+      "K2": "HTTP: requests (Jan) superseded by shared client (ADR-006, Feb)",
+      "K3": "Pydantic in services: contested, resolved by ADR-005",
+      "K4": "One reviewer's '<20 lines per function' opinion: not a rule"
+    }
+  },
+  "configs": {
+    "A": "Generic reviewer, no memory",
+    "B": "Naive RAG over docs + history threads",
+    "C": "ReviewMind after history ingestion",
+    "D": "ReviewMind after k simulated feedback events"
+  },
+  "feedback_steps": [
+    0,
+    5,
+    10,
+    20
+  ],
+  "simulated_developer": {
+    "seed": 42,
+    "flip_rate": 0.1,
+    "line_tolerance": 3,
+    "policy": "accept should_flag matches; reject should_not_flag matches with reject_reason; ignore others"
+  },
+  "history": [
+    {
+      "pr": 101,
+      "created_at": "2026-01-06T09:30:00Z",
+      "author": "alice",
+      "adr": "ADR-003",
+      "thread_labels": {
+        "t101-1": {
+          "convention": "C2",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t101-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 102,
+      "created_at": "2026-01-09T10:05:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t102-1": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K2",
+          "is_convention_signal": true,
+          "expected_strength": "superseded"
+        },
+        "t102-2": {
+          "convention": null,
+          "noise": "N1",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 103,
+      "created_at": "2026-01-14T10:20:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t103-1": {
+          "convention": "C1",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K1",
+          "is_convention_signal": true,
+          "expected_strength": "superseded"
+        },
+        "t103-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 104,
+      "created_at": "2026-01-20T09:45:00Z",
+      "author": "bob",
+      "adr": null,
+      "thread_labels": {
+        "t104-1": {
+          "convention": "C2",
+          "noise": null,
+          "mistake": "M4",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t104-2": {
+          "convention": null,
+          "noise": "N1",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 105,
+      "created_at": "2026-01-27T10:12:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t105-1": {
+          "convention": "C7",
+          "noise": null,
+          "mistake": "M2",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t105-2": {
+          "convention": null,
+          "noise": "N3",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 106,
+      "created_at": "2026-02-02T09:55:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t106-1": {
+          "convention": "C1",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K1",
+          "is_convention_signal": true,
+          "expected_strength": "superseded"
+        },
+        "t106-2": {
+          "convention": "C8",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 107,
+      "created_at": "2026-02-04T11:00:00Z",
+      "author": "alice",
+      "adr": "ADR-004",
+      "thread_labels": {
+        "t107-1": {
+          "convention": "C4",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t107-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 108,
+      "created_at": "2026-02-10T10:05:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t108-1": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K3",
+          "is_convention_signal": true,
+          "expected_strength": "contested"
+        },
+        "t108-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 109,
+      "created_at": "2026-02-16T11:30:00Z",
+      "author": "bob",
+      "adr": "ADR-005",
+      "thread_labels": {
+        "t109-1": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K3",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t109-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 110,
+      "created_at": "2026-02-23T09:15:00Z",
+      "author": "alice",
+      "adr": "ADR-006",
+      "thread_labels": {
+        "t110-1": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K2",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t110-2": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 111,
+      "created_at": "2026-03-02T10:20:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t111-1": {
+          "convention": "C4",
+          "noise": null,
+          "mistake": "M5",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t111-2": {
+          "convention": null,
+          "noise": "N2",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 112,
+      "created_at": "2026-03-09T10:12:00Z",
+      "author": "bob",
+      "adr": "ADR-007",
+      "thread_labels": {
+        "t112-1": {
+          "convention": "C1",
+          "noise": "N4",
+          "mistake": null,
+          "exception": null,
+          "conflict": "K1",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t112-2": {
+          "convention": "C1",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 113,
+      "created_at": "2026-03-16T09:41:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t113-1": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": "M1",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t113-2": {
+          "convention": null,
+          "noise": "N5",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t113-3": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 114,
+      "created_at": "2026-03-23T09:50:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t114-1": {
+          "convention": "C5",
+          "noise": null,
+          "mistake": "M3",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t114-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 115,
+      "created_at": "2026-03-30T10:40:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t115-1": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K3",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t115-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 116,
+      "created_at": "2026-04-01T13:20:00Z",
+      "author": "bob",
+      "adr": null,
+      "thread_labels": {
+        "t116-1": {
+          "convention": "C2",
+          "noise": null,
+          "mistake": null,
+          "exception": "E1",
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 117,
+      "created_at": "2026-04-08T09:30:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t117-1": {
+          "convention": "C6",
+          "noise": null,
+          "mistake": "M6",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t117-2": {
+          "convention": null,
+          "noise": "N3",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 118,
+      "created_at": "2026-04-15T11:05:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t118-1": {
+          "convention": "C1",
+          "noise": "N4",
+          "mistake": null,
+          "exception": null,
+          "conflict": "K1",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t118-2": {
+          "convention": "C1",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 119,
+      "created_at": "2026-04-22T10:00:00Z",
+      "author": "alice",
+      "adr": null,
+      "thread_labels": {
+        "t119-1": {
+          "convention": "C4",
+          "noise": null,
+          "mistake": null,
+          "exception": "E2",
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t119-2": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": false,
+          "expected_strength": null
+        }
+      }
+    },
+    {
+      "pr": 120,
+      "created_at": "2026-04-28T09:20:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t120-1": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K4",
+          "is_convention_signal": true,
+          "expected_strength": "not_a_rule"
+        },
+        "t120-2": {
+          "convention": "C7",
+          "noise": null,
+          "mistake": "M2",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 121,
+      "created_at": "2026-05-08T10:30:00Z",
+      "author": "bob",
+      "adr": "ADR-008",
+      "thread_labels": {
+        "t121-1": {
+          "convention": "C9",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t121-2": {
+          "convention": "C9",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 122,
+      "created_at": "2026-05-13T09:15:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t122-1": {
+          "convention": "C10",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t122-2": {
+          "convention": "C2",
+          "noise": null,
+          "mistake": "M4",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t122-3": {
+          "convention": null,
+          "noise": "N1",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 123,
+      "created_at": "2026-05-19T10:10:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t123-1": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": "M1",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t123-2": {
+          "convention": null,
+          "noise": "N5",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 124,
+      "created_at": "2026-05-26T09:40:00Z",
+      "author": "bob",
+      "adr": null,
+      "thread_labels": {
+        "t124-1": {
+          "convention": null,
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": "K3",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t124-2": {
+          "convention": "C5",
+          "noise": null,
+          "mistake": "M3",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t124-3": {
+          "convention": "C6",
+          "noise": null,
+          "mistake": "M6",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 125,
+      "created_at": "2026-06-03T10:30:00Z",
+      "author": "erin",
+      "adr": null,
+      "thread_labels": {
+        "t125-1": {
+          "convention": "C2",
+          "noise": null,
+          "mistake": "M4",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t125-2": {
+          "convention": "C4",
+          "noise": null,
+          "mistake": "M5",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t125-3": {
+          "convention": "C7",
+          "noise": null,
+          "mistake": "M2",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t125-4": {
+          "convention": "C8",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t125-5": {
+          "convention": null,
+          "noise": "N2",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 126,
+      "created_at": "2026-06-10T09:00:00Z",
+      "author": "carol",
+      "adr": null,
+      "thread_labels": {
+        "t126-1": {
+          "convention": "C10",
+          "noise": null,
+          "mistake": null,
+          "exception": "E3",
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 127,
+      "created_at": "2026-06-24T10:45:00Z",
+      "author": "erin",
+      "adr": null,
+      "thread_labels": {
+        "t127-1": {
+          "convention": "C3",
+          "noise": null,
+          "mistake": "M1",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t127-2": {
+          "convention": "C6",
+          "noise": null,
+          "mistake": "M6",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 128,
+      "created_at": "2026-07-06T10:00:00Z",
+      "author": "dan",
+      "adr": null,
+      "thread_labels": {
+        "t128-1": {
+          "convention": "C9",
+          "noise": null,
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t128-2": {
+          "convention": null,
+          "noise": "N2",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 129,
+      "created_at": "2026-07-14T09:30:00Z",
+      "author": "erin",
+      "adr": null,
+      "thread_labels": {
+        "t129-1": {
+          "convention": "C5",
+          "noise": null,
+          "mistake": "M3",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t129-2": {
+          "convention": null,
+          "noise": "N1",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t129-3": {
+          "convention": null,
+          "noise": "N3",
+          "mistake": null,
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    },
+    {
+      "pr": 130,
+      "created_at": "2026-07-22T10:15:00Z",
+      "author": "bob",
+      "adr": null,
+      "thread_labels": {
+        "t130-1": {
+          "convention": "C4",
+          "noise": null,
+          "mistake": "M5",
+          "exception": null,
+          "conflict": null,
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        },
+        "t130-2": {
+          "convention": "C1",
+          "noise": "N4",
+          "mistake": null,
+          "exception": null,
+          "conflict": "K1",
+          "is_convention_signal": true,
+          "expected_strength": "enforced"
+        }
+      }
+    }
+  ],
+  "feedback": [
+    {
+      "pr": 131,
+      "title": "Merchant balance endpoint",
+      "author": "erin",
+      "created_at": "2026-08-03T10:00:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "131-F1",
+          "kind": "convention",
+          "convention": "C2",
+          "path": "app/api/balances.py",
+          "line_range": [
+            14,
+            15
+          ],
+          "rationale": "Handler opens a DB session and queries the repo directly (ADR-003).",
+          "expected_fix": "Move the query into a balances service function and call it from the handler."
+        },
+        {
+          "id": "131-F2",
+          "kind": "convention",
+          "convention": "C7",
+          "path": "app/api/balances.py",
+          "line_range": [
+            16,
+            16
+          ],
+          "rationale": "Uses datetime.utcnow() instead of the injectable clock.",
+          "expected_fix": "as_of = clock.now()"
+        },
+        {
+          "id": "131-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/api/balances.py",
+          "line_range": [
+            25,
+            25
+          ],
+          "rationale": "Available balance ignores pending payouts, so merchants can over-withdraw.",
+          "expected_fix": "Subtract totals.pending_payout_cents from available."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "131-X1",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/api/balances.py",
+          "line_range": [
+            24,
+            24
+          ],
+          "trap": "Add a docstring to _format_balance.",
+          "reject_reason": "Private helper, the name says what it does. We only docstring public service functions."
+        },
+        {
+          "id": "131-X2",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_balances.py",
+          "line_range": [
+            6,
+            6
+          ],
+          "trap": "Extract 12_500 / 2_500 into named constants.",
+          "reject_reason": "Inline literals are on purpose, each test should read on its own."
+        },
+        {
+          "id": "131-X3",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_balances.py",
+          "line_range": [
+            13,
+            13
+          ],
+          "trap": "Add type hints / -> None to the test functions.",
+          "reject_reason": "We don't type tests, mypy excludes tests/."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 132,
+      "title": "Nightly job to void expired authorizations",
+      "author": "dan",
+      "created_at": "2026-08-06T09:30:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "132-F1",
+          "kind": "convention",
+          "convention": "C3",
+          "path": "app/jobs/expire_authorizations.py",
+          "line_range": [
+            30,
+            31
+          ],
+          "rationale": "Raw httpx.post instead of a client built on make_client (ADR-006).",
+          "expected_fix": "Add a void call to app/clients/card_network.py using its make_client-based _client."
+        },
+        {
+          "id": "132-F2",
+          "kind": "convention",
+          "convention": "C5",
+          "path": "app/jobs/expire_authorizations.py",
+          "line_range": [
+            25,
+            25
+          ],
+          "rationale": "f-string log message instead of a snake_case event with kwargs.",
+          "expected_fix": "log.info(\"expired_authorizations_voided\", count=len(expired))"
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "132-X1",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/jobs/expire_authorizations.py",
+          "line_range": [
+            24,
+            24
+          ],
+          "trap": "Wrap the void + mark_expired in try/except, log the error and re-raise.",
+          "reject_reason": "Let it propagate; the job runner logs failures. try/log/raise just double-logs."
+        },
+        {
+          "id": "132-X2",
+          "noise": "N5",
+          "exception": null,
+          "path": "app/jobs/expire_authorizations.py",
+          "line_range": [
+            22,
+            22
+          ],
+          "trap": "Add retry with backoff around the void call, the network API is flaky.",
+          "reject_reason": "make_client already retries transient errors; another retry layer is how INC-12 happened."
+        },
+        {
+          "id": "132-X3",
+          "noise": "N3",
+          "exception": null,
+          "path": "app/jobs/expire_authorizations.py",
+          "line_range": [
+            5,
+            5
+          ],
+          "trap": "Imports are not sorted (app.utils before app.db).",
+          "reject_reason": "ruff fixes import order in pre-commit, no need to comment on it."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 133,
+      "title": "Debit the dispute fee from the merchant balance",
+      "author": "carol",
+      "created_at": "2026-08-11T10:20:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "133-F1",
+          "kind": "convention",
+          "convention": "C4",
+          "path": "app/api/disputes.py",
+          "line_range": [
+            9,
+            10
+          ],
+          "rationale": "Money-moving POST without @idempotent (ADR-004); a retry double-debits the merchant.",
+          "expected_fix": "Decorate debit_fee with @idempotent."
+        },
+        {
+          "id": "133-F2",
+          "kind": "convention",
+          "convention": "C6",
+          "path": "app/services/dispute_fees.py",
+          "line_range": [
+            20,
+            20
+          ],
+          "rationale": "Service raises HTTPException; services raise app.errors domain errors.",
+          "expected_fix": "raise errors.NotFound(...) / errors.Conflict(...) and let api/errors.py map them."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "133-X1",
+          "noise": "N4",
+          "exception": null,
+          "path": "app/services/dispute_fees.py",
+          "line_range": [
+            23,
+            23
+          ],
+          "trap": "Use Decimal for the percentage fee to avoid rounding errors.",
+          "reject_reason": "Int minor units per ADR-007, apply_bps does the rounding. No Decimal."
+        },
+        {
+          "id": "133-X2",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/dispute_fees.py",
+          "line_range": [
+            32,
+            32
+          ],
+          "trap": "Add a docstring to _fee_for.",
+          "reject_reason": "Private one-liner, no docstring needed."
+        },
+        {
+          "id": "133-X3",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_dispute_fees.py",
+          "line_range": [
+            6,
+            6
+          ],
+          "trap": "Replace 20_000 and 1_580 with named constants.",
+          "reject_reason": "Keep literals inline in tests so the expected numbers are visible."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 134,
+      "title": "Let merchants configure their payout schedule",
+      "author": "erin",
+      "created_at": "2026-08-17T11:10:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "134-F1",
+          "kind": "convention",
+          "convention": "C10",
+          "path": "app/services/payout_schedules.py",
+          "line_range": [
+            10,
+            10
+          ],
+          "rationale": "Reads os.environ directly in app/ instead of app.config.settings.",
+          "expected_fix": "Add payout_min_cents to Settings and use settings.payout_min_cents."
+        },
+        {
+          "id": "134-F2",
+          "kind": "convention",
+          "convention": "C8",
+          "path": "tests/test_payout_schedules.py",
+          "line_range": [
+            8,
+            8
+          ],
+          "rationale": "Test names don't follow test_<unit>__<scenario>__<expected>; model built inline instead of via factories.",
+          "expected_fix": "Rename to test_update_schedule__weekly__returns_schedule and use a factory."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "134-X1",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/services/payout_schedules.py",
+          "line_range": [
+            25,
+            25
+          ],
+          "trap": "Wrap the upsert in try/except, log the failure and re-raise.",
+          "reject_reason": "Domain errors and DB errors propagate to the middleware which logs them; no try/log/raise."
+        },
+        {
+          "id": "134-X2",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_payout_schedules.py",
+          "line_range": [
+            16,
+            16
+          ],
+          "trap": "Type-annotate the test function and fixture.",
+          "reject_reason": "Tests aren't typed here, mypy skips tests/."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 135,
+      "title": "Notify merchants of refunds via their webhook URL",
+      "author": "dan",
+      "created_at": "2026-08-21T09:50:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "135-F1",
+          "kind": "convention",
+          "convention": "C3",
+          "path": "app/services/merchant_webhooks.py",
+          "line_range": [
+            26,
+            30
+          ],
+          "rationale": "Raw httpx.post instead of a make_client-based client (ADR-006).",
+          "expected_fix": "Build a merchant_webhooks client module on make_client and post through it."
+        },
+        {
+          "id": "135-F2",
+          "kind": "convention",
+          "convention": "C5",
+          "path": "app/services/merchant_webhooks.py",
+          "line_range": [
+            33,
+            33
+          ],
+          "rationale": "Logs the merchant's email address unredacted (PII).",
+          "expected_fix": "Drop merchant_email or wrap it in redact()."
+        },
+        {
+          "id": "135-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/merchant_webhooks.py",
+          "line_range": [
+            25,
+            25
+          ],
+          "rationale": "Signs the Python repr of the dict, not the JSON bytes actually sent; merchants can't verify it.",
+          "expected_fix": "Serialise once with json.dumps, sign those bytes and send them as content."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "135-X1",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_merchant_webhooks.py",
+          "line_range": [
+            11,
+            11
+          ],
+          "trap": "Pull 4_999 into a named constant.",
+          "reject_reason": "Test literals stay inline, that's our style."
+        },
+        {
+          "id": "135-X2",
+          "noise": "N5",
+          "exception": null,
+          "path": "app/services/merchant_webhooks.py",
+          "line_range": [
+            32,
+            32
+          ],
+          "trap": "Merchant endpoints are unreliable, add retries with exponential backoff.",
+          "reject_reason": "Retries belong in the shared client, not ad hoc at call sites (INC-12)."
+        },
+        {
+          "id": "135-X3",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/merchant_webhooks.py",
+          "line_range": [
+            36,
+            36
+          ],
+          "trap": "Document _sign with a docstring.",
+          "reject_reason": "No docstrings on private helpers."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 136,
+      "title": "Daily bank-vs-ledger reconciliation report",
+      "author": "bob",
+      "created_at": "2026-08-26T10:40:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "136-F1",
+          "kind": "convention",
+          "convention": "C7",
+          "path": "app/services/reconciliation.py",
+          "line_range": [
+            27,
+            27
+          ],
+          "rationale": "Reads wall-clock time directly instead of app.utils.clock.now() (not freezable in tests).",
+          "expected_fix": "\"generated_at\": clock.now().isoformat()"
+        },
+        {
+          "id": "136-F2",
+          "kind": "convention",
+          "convention": "C9",
+          "path": "migrations/versions/0027_drop_ledger_legacy_ref.py",
+          "line_range": [
+            15,
+            15
+          ],
+          "rationale": "Drops a column in the same PR that changes the code reading it (ADR-008, INC-19).",
+          "expected_fix": "Ship the repo change first; drop legacy_ref in a separate later PR."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "136-X1",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/services/reconciliation.py",
+          "line_range": [
+            15,
+            15
+          ],
+          "trap": "Wrap the bank call in try/except, log and re-raise with context.",
+          "reject_reason": "Errors propagate to the job runner which logs them, don't add try/log/raise."
+        },
+        {
+          "id": "136-X2",
+          "noise": "N3",
+          "exception": null,
+          "path": "app/services/reconciliation.py",
+          "line_range": [
+            6,
+            6
+          ],
+          "trap": "Import order: app.domain should come before app.repos.",
+          "reject_reason": "ruff handles import order, not a review comment."
+        },
+        {
+          "id": "136-X3",
+          "noise": "N4",
+          "exception": null,
+          "path": "app/services/reconciliation.py",
+          "line_range": [
+            19,
+            19
+          ],
+          "trap": "Use Decimal for the tolerance percentage calculation.",
+          "reject_reason": "We use int cents and apply_bps (ADR-007), no Decimal."
+        }
+      ],
+      "drift_trap": null
+    }
+  ],
+  "test": [
+    {
+      "pr": 137,
+      "title": "Add refund processing fee",
+      "author": "erin",
+      "created_at": "2026-09-01T10:14:00Z",
+      "demo": true,
+      "should_flag": [
+        {
+          "id": "137-F1",
+          "kind": "convention",
+          "convention": "C4",
+          "path": "app/api/refunds.py",
+          "line_range": [
+            22,
+            23
+          ],
+          "rationale": "New money-moving POST (refund + fee debit) has no @idempotent; a client retry would refund and debit twice (ADR-004).",
+          "expected_fix": "Decorate refund_remaining_with_fee with @idempotent, like create_refund above it."
+        },
+        {
+          "id": "137-F2",
+          "kind": "convention",
+          "convention": "C3",
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            20,
+            20
+          ],
+          "rationale": "Builds its own httpx.Client instead of the shared client, losing retries, request-id propagation and http_call metrics (ADR-006).",
+          "expected_fix": "_bank = make_client(\"bank_transfers\", settings.bank_transfers_base_url)"
+        },
+        {
+          "id": "137-F3",
+          "kind": "convention",
+          "convention": "C7",
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            41,
+            41
+          ],
+          "rationale": "Reads the wall clock directly (and naive utcnow); tests can't freeze it via frozen_clock.",
+          "expected_fix": "Use clock.now().isoformat() from app.utils.clock."
+        },
+        {
+          "id": "137-F4",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            35,
+            35
+          ],
+          "rationale": "Fee is computed on the original charge amount, but the refund is only the remaining refundable amount; partially refunded charges are overcharged.",
+          "expected_fix": "Base the fee on the refunded amount: _processing_fee(refund.amount_cents) (i.e. charge.refundable_cents)."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "137-X1",
+          "noise": "N4",
+          "exception": null,
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            49,
+            49
+          ],
+          "trap": "Percentage fee on integers risks rounding errors; use Decimal for currency arithmetic.",
+          "reject_reason": "Money is int minor units since ADR-007, and apply_bps already rounds half-even. No Decimal."
+        },
+        {
+          "id": "137-X2",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            48,
+            48
+          ],
+          "trap": "Add a docstring to _processing_fee explaining the fee rule and minimum.",
+          "reject_reason": "It's a private helper and the name says what it does; we only docstring public service functions."
+        },
+        {
+          "id": "137-X3",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_refund_fees.py",
+          "line_range": [
+            9,
+            9
+          ],
+          "trap": "Add type hints to the bank_debits fixture and its fake_post helper (monkeypatch: pytest.MonkeyPatch, -> list[dict]).",
+          "reject_reason": "We don't type tests, mypy excludes tests/ anyway."
+        },
+        {
+          "id": "137-X4",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_refund_fees.py",
+          "line_range": [
+            26,
+            26
+          ],
+          "trap": "Extract magic numbers like 150 and 10_000 into named test constants.",
+          "reject_reason": "Test literals stay inline on purpose so each test reads on its own."
+        },
+        {
+          "id": "137-X5",
+          "noise": "N5",
+          "exception": null,
+          "path": "app/services/refund_fees.py",
+          "line_range": [
+            36,
+            36
+          ],
+          "trap": "The bank debit call has no retry/backoff; wrap it in a retry for transient failures.",
+          "reject_reason": "The shared client already retries; stacking another retry layer is how we got INC-12."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 138,
+      "title": "Payout batching",
+      "author": "dan",
+      "created_at": "2026-09-03T14:32:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "138-F1",
+          "kind": "convention",
+          "convention": "C2",
+          "path": "app/api/payouts.py",
+          "line_range": [
+            33,
+            34
+          ],
+          "rationale": "The handler opens a session and queries the repo directly; handlers must call a service (ADR-003).",
+          "expected_fix": "Add payout_batches.list_batch_payouts(batch_id) and call it from the handler."
+        },
+        {
+          "id": "138-F2",
+          "kind": "convention",
+          "convention": "C5",
+          "path": "app/services/payout_batches.py",
+          "line_range": [
+            28,
+            28
+          ],
+          "rationale": "f-string log message: not a stable snake_case event, fields aren't queryable.",
+          "expected_fix": "log.info(\"payout_batches_submitted\", merchant_id=merchant_id, batch_count=len(batch_ids))"
+        },
+        {
+          "id": "138-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/payout_batches.py",
+          "line_range": [
+            33,
+            33
+          ],
+          "rationale": "Floor division drops the final partial batch: 450 pending payouts produce two batches and the last 50 are never submitted.",
+          "expected_fix": "Use ceil division, or simply [payouts[i:i + size] for i in range(0, len(payouts), size)]."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "138-X1",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/payout_batches.py",
+          "line_range": [
+            32,
+            32
+          ],
+          "trap": "_chunk should have a docstring describing how it splits the list.",
+          "reject_reason": "Private helper, the name is the documentation. Docstrings are for public service functions."
+        },
+        {
+          "id": "138-X2",
+          "noise": "N3",
+          "exception": null,
+          "path": "app/services/payout_batches.py",
+          "line_range": [
+            2,
+            4
+          ],
+          "trap": "Imports are not sorted alphabetically (app.utils.logging before app.domain/app.db).",
+          "reject_reason": "ruff sorts imports in pre-commit, please don't spend review comments on ordering."
+        },
+        {
+          "id": "138-X3",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/services/payout_batches.py",
+          "line_range": [
+            23,
+            23
+          ],
+          "trap": "Wrap submit_batch in try/except, log the failing batch and re-raise.",
+          "reject_reason": "Let the error propagate, the error middleware already logs it; a local log-and-raise double-logs."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 139,
+      "title": "Card-network fallback",
+      "author": "carol",
+      "created_at": "2026-09-08T11:05:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "139-F1",
+          "kind": "convention",
+          "convention": "C3",
+          "path": "app/clients/card_network.py",
+          "line_range": [
+            16,
+            17
+          ],
+          "rationale": "Uses requests for the status page call. The 'fine for now' stance (#102) was superseded by ADR-006: all outbound HTTP goes through make_client().",
+          "expected_fix": "Add _status_page = make_client(\"card_network_status_page\", settings.card_network_status_page_url) and drop the requests import."
+        },
+        {
+          "id": "139-F2",
+          "kind": "convention",
+          "convention": "C6",
+          "path": "app/services/network_health.py",
+          "line_range": [
+            26,
+            26
+          ],
+          "rationale": "Service raises FastAPI's HTTPException; services raise app.errors domain errors and app/api/errors.py maps them to HTTP.",
+          "expected_fix": "raise errors.ProviderUnavailable(...) (already mapped to 503)."
+        },
+        {
+          "id": "139-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/network_health.py",
+          "line_range": [
+            22,
+            23
+          ],
+          "rationale": "If the fallback also fails, the exception is swallowed and indicator 'none' maps to 'up': a total outage is reported as the network being healthy.",
+          "expected_fix": "Let the error propagate (or raise ProviderUnavailable) instead of defaulting to 'none'."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "139-X1",
+          "noise": "N5",
+          "exception": null,
+          "path": "app/services/network_health.py",
+          "line_range": [
+            16,
+            16
+          ],
+          "trap": "Retry the status API call with backoff before falling back to the status page.",
+          "reject_reason": "The shared client already retries 502/503/504; another retry layer on top is the INC-12 pattern."
+        },
+        {
+          "id": "139-X2",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_network_health.py",
+          "line_range": [
+            11,
+            11
+          ],
+          "trap": "Add type annotations to the status_api_down fixture (monkeypatch: pytest.MonkeyPatch) -> None.",
+          "reject_reason": "Tests aren't typed here; mypy doesn't even look at tests/."
+        },
+        {
+          "id": "139-X3",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_network_health.py",
+          "line_range": [
+            13,
+            13
+          ],
+          "trap": "Replace the literal 503 with a named constant or HTTPStatus.SERVICE_UNAVAILABLE.",
+          "reject_reason": "Literals in tests stay inline so the test reads on its own."
+        }
+      ],
+      "drift_trap": {
+        "conflict": "K2",
+        "expected": "Flag the requests call as a shared-client (ADR-006) violation despite the 'requests is fine here for now' comment; that position from #102 was superseded by ADR-006 in #110."
+      }
+    },
+    {
+      "pr": 140,
+      "title": "Delete saved card",
+      "author": "erin",
+      "created_at": "2026-09-10T16:20:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "140-F1",
+          "kind": "convention",
+          "convention": "C5",
+          "path": "app/services/saved_cards.py",
+          "line_range": [
+            34,
+            34
+          ],
+          "rationale": "Logs the customer's email in plain text; PII must be redacted (or left out) of logs.",
+          "expected_fix": "Drop the email or log customer_email=redact(customer.email); customer_id is usually enough."
+        },
+        {
+          "id": "140-F2",
+          "kind": "convention",
+          "convention": "C8",
+          "path": "tests/test_delete_saved_card.py",
+          "line_range": [
+            18,
+            18
+          ],
+          "rationale": "Test names don't follow test_<unit>__<scenario>__<expected>, and the SavedCard is built inline instead of via tests/factories.py.",
+          "expected_fix": "Rename to test_delete_saved_card__active_card__marks_deleted_and_deletes_token / test_delete_saved_card__unknown_card__raises_not_found; add make_saved_card to factories."
+        },
+        {
+          "id": "140-F3",
+          "kind": "convention",
+          "convention": "C10",
+          "path": "app/clients/vault.py",
+          "line_range": [
+            5,
+            5
+          ],
+          "rationale": "Reads os.environ inside app/; config goes through app.config.settings (the PAYMENTS_ prefix is already applied there).",
+          "expected_fix": "Add vault_url / vault_api_key to Settings and use settings.vault_url, settings.vault_api_key."
+        },
+        {
+          "id": "140-F4",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/saved_cards.py",
+          "line_range": [
+            30,
+            30
+          ],
+          "rationale": "No ownership check: customer_id is never compared to card.customer_id, so any customer can delete another customer's saved card by id (IDOR).",
+          "expected_fix": "Raise NotFound when card.customer_id != customer_id (or look the card up by both ids)."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "140-X1",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/saved_cards.py",
+          "line_range": [
+            37,
+            37
+          ],
+          "trap": "Add a docstring to _get_active_card documenting the NotFound behaviour.",
+          "reject_reason": "Private helper; the name and the three lines say it all. We only docstring public service functions."
+        },
+        {
+          "id": "140-X2",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_delete_saved_card.py",
+          "line_range": [
+            12,
+            12
+          ],
+          "trap": "The vault_calls fixture should be typed: (monkeypatch: pytest.MonkeyPatch) -> list[str].",
+          "reject_reason": "No type hints in tests, mypy excludes tests/."
+        },
+        {
+          "id": "140-X3",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/services/saved_cards.py",
+          "line_range": [
+            33,
+            33
+          ],
+          "trap": "Wrap the vault call in try/except and log the failure with the card id before re-raising.",
+          "reject_reason": "Errors propagate to the error middleware, which logs them; wrapping it just logs twice."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 141,
+      "title": "Redis health check",
+      "author": "bob",
+      "created_at": "2026-09-14T09:48:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "141-F1",
+          "kind": "convention",
+          "convention": "C7",
+          "path": "app/api/health.py",
+          "line_range": [
+            33,
+            33
+          ],
+          "rationale": "datetime.now() reads the wall clock (and is naive local time); time comes from app.utils.clock.now() so tests can freeze it.",
+          "expected_fix": "\"checked_at\": clock.now().isoformat()"
+        },
+        {
+          "id": "141-F2",
+          "kind": "convention",
+          "convention": "C10",
+          "path": "app/api/health.py",
+          "line_range": [
+            14,
+            14
+          ],
+          "rationale": "Reads os.environ in app/ with a duplicated default; settings.redis_url already exists.",
+          "expected_fix": "redis.Redis.from_url(settings.redis_url, socket_timeout=1.0)"
+        },
+        {
+          "id": "141-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/api/health.py",
+          "line_range": [
+            29,
+            29
+          ],
+          "rationale": "checks values are the strings 'ok'/'error', both truthy, so all() is always True: the endpoint returns 200 even when Redis or the database is down.",
+          "expected_fix": "healthy = all(v == \"ok\" for v in checks.values())"
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "141-X1",
+          "noise": null,
+          "exception": "E1",
+          "path": "app/api/health.py",
+          "line_range": [
+            49,
+            49
+          ],
+          "trap": "The API layer talks to Redis/the database directly; move this into a service/repository.",
+          "reject_reason": "Health endpoints are the documented exception in ADR-003, they check infrastructure directly."
+        },
+        {
+          "id": "141-X2",
+          "noise": "N3",
+          "exception": null,
+          "path": "app/api/health.py",
+          "line_range": [
+            7,
+            7
+          ],
+          "trap": "Import order: fastapi.responses should be grouped with fastapi before sqlalchemy.",
+          "reject_reason": "Import order is ruff's job in pre-commit, not a review comment."
+        },
+        {
+          "id": "141-X3",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/api/health.py",
+          "line_range": [
+            47,
+            47
+          ],
+          "trap": "_check_redis needs a docstring explaining the return values.",
+          "reject_reason": "Private helper, self-explanatory; we don't docstring those."
+        },
+        {
+          "id": "141-X4",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_health.py",
+          "line_range": [
+            19,
+            19
+          ],
+          "trap": "Magic number 2 in the assertion; use a named constant (e.g. EXPECTED_CHECKS).",
+          "reject_reason": "We keep test literals inline, the test should read on its own."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 142,
+      "title": "Stripe payout webhook events",
+      "author": "dan",
+      "created_at": "2026-09-17T13:36:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "142-F1",
+          "kind": "convention",
+          "convention": "C6",
+          "path": "app/services/webhooks.py",
+          "line_range": [
+            44,
+            44
+          ],
+          "rationale": "Service raises FastAPI HTTPException; services raise app.errors domain errors and the API layer maps them.",
+          "expected_fix": "Raise a domain error from app.errors (or log and ignore the event) instead of HTTPException."
+        },
+        {
+          "id": "142-F2",
+          "kind": "convention",
+          "convention": "C5",
+          "path": "app/services/webhooks.py",
+          "line_range": [
+            40,
+            40
+          ],
+          "rationale": "f-string log message instead of a snake_case event with keyword fields.",
+          "expected_fix": "log.info(\"stripe_payout_event_ignored\", event_id=event.id, event_type=event.type)"
+        },
+        {
+          "id": "142-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/webhooks.py",
+          "line_range": [
+            49,
+            51
+          ],
+          "rationale": "Dedupe happens after the side effect: a redelivered payout.failed event credits the merchant balance again (and resets status) before insert_if_new reports a duplicate.",
+          "expected_fix": "Check/insert the event id first and return early on duplicates, as handle_stripe_event does."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "142-X1",
+          "noise": null,
+          "exception": "E2",
+          "path": "app/api/webhooks.py",
+          "line_range": [
+            18,
+            19
+          ],
+          "trap": "This POST changes money state but has no @idempotent decorator.",
+          "reject_reason": "Stripe webhooks are the exception: no Idempotency-Key from Stripe, we dedupe on the event id."
+        },
+        {
+          "id": "142-X2",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/api/webhooks.py",
+          "line_range": [
+            24,
+            24
+          ],
+          "trap": "Wrap the service call in try/except and log the event id on failure before re-raising.",
+          "reject_reason": "Let it propagate; the error middleware already logs it and Stripe will retry. Wrapping double-logs."
+        },
+        {
+          "id": "142-X3",
+          "noise": "N5",
+          "exception": null,
+          "path": "app/services/webhooks.py",
+          "line_range": [
+            54,
+            54
+          ],
+          "trap": "The merchant notification call has no retry; add retry with exponential backoff.",
+          "reject_reason": "Our clients are built on make_client(), which already retries. Extra retry layers gave us INC-12."
+        },
+        {
+          "id": "142-X4",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_stripe_payout_webhooks.py",
+          "line_range": [
+            10,
+            10
+          ],
+          "trap": "Type the payout_event fixture and its build() factory (return Callable[..., SimpleNamespace]).",
+          "reject_reason": "We don't add type hints in tests; mypy excludes tests/."
+        }
+      ],
+      "drift_trap": null
+    },
+    {
+      "pr": 143,
+      "title": "FX conversion for multi-currency refunds",
+      "author": "carol",
+      "created_at": "2026-09-22T10:27:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "143-F1",
+          "kind": "convention",
+          "convention": "C1",
+          "path": "app/services/refund_fx.py",
+          "line_range": [
+            11,
+            12
+          ],
+          "rationale": "Money maths done in Decimal major units; ADR-007 superseded Decimal: amounts stay int minor units and conversions use app.domain.money helpers.",
+          "expected_fix": "Get the rate as an integer (e.g. rate_micros) and compute with round_half_even_div on int minor units, scaling by exponent() of both currencies."
+        },
+        {
+          "id": "143-F2",
+          "kind": "convention",
+          "convention": "C3",
+          "path": "app/clients/fx_quotes.py",
+          "line_range": [
+            7,
+            7
+          ],
+          "rationale": "Raw httpx.get call; outbound HTTP must go through make_client() (ADR-006) for timeouts, retries, request ids and metrics.",
+          "expected_fix": "_client = make_client(\"fx\", settings.fx_base_url); _client.get(\"/v1/quotes/refund\", params=...)"
+        },
+        {
+          "id": "143-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/refund_fx.py",
+          "line_range": [
+            21,
+            21
+          ],
+          "rationale": "Converts back to minor units with a hardcoded 100, ignoring the target currency's exponent: refunds into JPY/KRW come out 100x too large (and KWD 10x too small).",
+          "expected_fix": "Scale by 10 ** exponent(currency), as _to_major already does for the source currency."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "143-X1",
+          "noise": "N1",
+          "exception": null,
+          "path": "app/services/refund_fx.py",
+          "line_range": [
+            16,
+            16
+          ],
+          "trap": "Add docstrings to _to_major/_to_minor explaining the unit conversion.",
+          "reject_reason": "These are private helpers; their names document them. Only public service functions get docstrings."
+        },
+        {
+          "id": "143-X2",
+          "noise": "N6",
+          "exception": null,
+          "path": "tests/test_refund_fx.py",
+          "line_range": [
+            14,
+            14
+          ],
+          "trap": "Magic numbers in the assertions; derive the expected value from named constants.",
+          "reject_reason": "We keep literals inline in tests so each one reads on its own."
+        },
+        {
+          "id": "143-X3",
+          "noise": "N3",
+          "exception": null,
+          "path": "app/services/refund_fx.py",
+          "line_range": [
+            3,
+            4
+          ],
+          "trap": "Imports are out of alphabetical order (app.domain before app.clients).",
+          "reject_reason": "Import sorting is handled by ruff in pre-commit; not worth a review comment."
+        }
+      ],
+      "drift_trap": {
+        "conflict": "K1",
+        "expected": "Flag the Decimal money arithmetic as an ADR-007 violation even though Decimal was the accepted approach in #103/#106; that was superseded by integer minor units in #112."
+      }
+    },
+    {
+      "pr": 144,
+      "title": "Payout reversal endpoint",
+      "author": "erin",
+      "created_at": "2026-09-25T15:02:00Z",
+      "demo": false,
+      "should_flag": [
+        {
+          "id": "144-F1",
+          "kind": "convention",
+          "convention": "C4",
+          "path": "app/api/payouts.py",
+          "line_range": [
+            21,
+            22
+          ],
+          "rationale": "Money-moving POST without @idempotent; a retried request reverses the payout twice (ADR-004).",
+          "expected_fix": "Add @idempotent under the route decorator."
+        },
+        {
+          "id": "144-F2",
+          "kind": "convention",
+          "convention": "C2",
+          "path": "app/api/payouts.py",
+          "line_range": [
+            23,
+            24
+          ],
+          "rationale": "Handler opens a session and loads the payout itself; handlers call services only (ADR-003).",
+          "expected_fix": "Make reverse_payout(payout_id=..., reason=...) load the payout and raise errors.NotFound; the handler just calls it."
+        },
+        {
+          "id": "144-F3",
+          "kind": "generic_bug",
+          "convention": null,
+          "path": "app/services/payouts.py",
+          "line_range": [
+            36,
+            36
+          ],
+          "rationale": "The status guard doesn't exclude 'reversed' (or 'reversal_pending'), so an already-reversed payout can be reversed again, clawing the money back twice.",
+          "expected_fix": "Only allow status == \"paid\" (or explicitly reject \"reversed\"/\"reversal_pending\")."
+        }
+      ],
+      "should_not_flag": [
+        {
+          "id": "144-X1",
+          "noise": "N4",
+          "exception": null,
+          "path": "app/services/payouts.py",
+          "line_range": [
+            38,
+            38
+          ],
+          "trap": "Percentage fee computed with integers; use Decimal to avoid rounding errors on money.",
+          "reject_reason": "Integer minor units is the rule since ADR-007, and apply_bps rounds half-even for us."
+        },
+        {
+          "id": "144-X2",
+          "noise": "N2",
+          "exception": null,
+          "path": "tests/test_payout_reversal.py",
+          "line_range": [
+            10,
+            10
+          ],
+          "trap": "Add type hints to the reversal_requests fixture.",
+          "reject_reason": "Tests stay untyped; mypy excludes tests/."
+        },
+        {
+          "id": "144-X3",
+          "noise": "N7",
+          "exception": null,
+          "path": "app/api/payouts.py",
+          "line_range": [
+            27,
+            27
+          ],
+          "trap": "Catch exceptions from reverse_payout, log them with the payout id, then re-raise.",
+          "reject_reason": "Domain errors propagate to the error middleware, which already logs; this would double-log."
+        },
+        {
+          "id": "144-X4",
+          "noise": null,
+          "exception": "E3",
+          "path": "scripts/find_duplicate_payouts_0919.py",
+          "line_range": [
+            7,
+            7
+          ],
+          "trap": "Use app.config.settings instead of os.environ, and logging instead of print.",
+          "reject_reason": "It's a one-off in scripts/; print and os.environ are fine there, same as the refund reasons backfill."
+        }
+      ],
+      "drift_trap": null
+    }
+  ]
+}

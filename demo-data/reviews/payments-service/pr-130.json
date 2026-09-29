@@ -1,0 +1,72 @@
+{
+  "pr": 130,
+  "reviews": [
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-07-22T13:00:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "erin",
+      "state": "commented",
+      "submitted_at": "2026-07-22T15:30:00Z",
+      "body": "Question about precision."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-07-23T09:40:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t130-1",
+      "path": "app/api/payouts.py",
+      "line": 19,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-07-22T12:55:00Z",
+          "body": "New money-moving endpoint without `@idempotent`, which the first commit was missing. Even for us 🙂 (ADR-004)."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-07-22T13:20:00Z",
+          "body": "Ha, guilty. Added."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "7679f110197faed3eb285e997f2c5a8b256e0c8e"
+    },
+    {
+      "id": "t130-2",
+      "path": "app/services/payouts.py",
+      "line": 31,
+      "comments": [
+        {
+          "author": "erin",
+          "created_at": "2026-07-22T15:25:00Z",
+          "body": "Should the conversion use `Decimal` for the intermediate result? At my previous company we always converted currency with Decimal to avoid precision loss."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-07-22T16:10:00Z",
+          "body": "Good instinct in general, but we deliberately don't here. ADR-007: money is int minor units end to end, and the conversion in fx.py uses integer micro-rates with a single half-even rounding step, so nothing is lost. Decimal is what we moved away from in March (#112), because the int<->Decimal boundaries were where the rounding mismatches happened."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-07-22T16:30:00Z",
+          "body": "Ah, that makes sense. Thanks for the context!"
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "ADR-007: int minor units end to end; fx.py does integer maths with one rounding step.",
+      "follow_up_commit": null
+    }
+  ]
+}

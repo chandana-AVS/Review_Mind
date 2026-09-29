@@ -1,0 +1,33 @@
+{
+  "number": 141,
+  "title": "Redis health check",
+  "body": "Adds `/healthz/deep`, which checks both Postgres and Redis and returns 503 if either is unhealthy. The load balancer keeps using `/healthz`; the deep check is for the on-call dashboard and the synthetic monitor, so we stop finding out about idempotency-store outages from merchants.\n\nRedis ping uses a 1s socket timeout so a hung Redis can't hang the probe.",
+  "author": "bob",
+  "created_at": "2026-09-14T09:48:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "ops",
+    "reliability"
+  ],
+  "base_sha": "0c536fefc4ff4b1aa5442027a982138890427a26",
+  "head_sha": "e204052a56cea0714b1cbf08201af1748410fd4f",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/health.py",
+      "status": "modified",
+      "additions": 38,
+      "deletions": 0,
+      "patch": "@@ -1,9 +1,18 @@\n+import os\n+from datetime import datetime\n+\n+import redis\n from fastapi import APIRouter\n from sqlalchemy import text\n+from fastapi.responses import JSONResponse\n \n from app.db import session_scope\n \n router = APIRouter(tags=[\"ops\"])\n+\n+_redis = redis.Redis.from_url(\n+    os.environ.get(\"PAYMENTS_REDIS_URL\", \"redis://localhost:6379/0\"), socket_timeout=1.0\n+)\n \n \n @router.get(\"/healthz\")\n@@ -12,3 +21,32 @@\n     with session_scope() as session:\n         session.execute(text(\"SELECT 1\"))\n     return {\"status\": \"ok\"}\n+\n+\n+@router.get(\"/healthz/deep\")\n+def deep_health() -> JSONResponse:\n+    checks = {\"database\": _check_database(), \"redis\": _check_redis()}\n+    healthy = all(checks.values())\n+    body = {\n+        \"status\": \"ok\" if healthy else \"degraded\",\n+        \"checks\": checks,\n+        \"checked_at\": datetime.now().isoformat(),\n+    }\n+    return JSONResponse(body, status_code=200 if healthy else 503)\n+\n+\n+def _check_database() -> str:\n+    try:\n+        with session_scope() as session:\n+            session.execute(text(\"SELECT 1\"))\n+    except Exception:\n+        return \"error\"\n+    return \"ok\"\n+\n+\n+def _check_redis() -> str:\n+    try:\n+        _redis.ping()\n+    except redis.RedisError:\n+        return \"error\"\n+    return \"ok\""
+    },
+    {
+      "path": "tests/test_health.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+from unittest.mock import Mock\n+\n+import redis\n+from fastapi.testclient import TestClient\n+\n+from app.api import health\n+from app.main import app\n+\n+client = TestClient(app)\n+\n+\n+def test_deep_health__all_up__returns_ok(monkeypatch):\n+    monkeypatch.setattr(health, \"_check_database\", lambda: \"ok\")\n+    monkeypatch.setattr(health._redis, \"ping\", Mock(return_value=True))\n+\n+    response = client.get(\"/healthz/deep\")\n+\n+    assert response.status_code == 200\n+    assert len(response.json()[\"checks\"]) == 2\n+\n+\n+def test_check_redis__ping_times_out__returns_error(monkeypatch):\n+    monkeypatch.setattr(health._redis, \"ping\", Mock(side_effect=redis.TimeoutError()))\n+\n+    assert health._check_redis() == \"error\""
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "pr": 124,
+  "threads": {
+    "t124-1": {
+      "convention": null,
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": "K3",
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t124-2": {
+      "convention": "C5",
+      "noise": null,
+      "mistake": "M3",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t124-3": {
+      "convention": "C6",
+      "noise": null,
+      "mistake": "M6",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

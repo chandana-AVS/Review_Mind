@@ -1,0 +1,82 @@
+{
+  "pr": 131,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "131-F1",
+      "kind": "convention",
+      "convention": "C2",
+      "path": "app/api/balances.py",
+      "line_range": [
+        14,
+        15
+      ],
+      "rationale": "Handler opens a DB session and queries the repo directly (ADR-003).",
+      "expected_fix": "Move the query into a balances service function and call it from the handler."
+    },
+    {
+      "id": "131-F2",
+      "kind": "convention",
+      "convention": "C7",
+      "path": "app/api/balances.py",
+      "line_range": [
+        16,
+        16
+      ],
+      "rationale": "Uses datetime.utcnow() instead of the injectable clock.",
+      "expected_fix": "as_of = clock.now()"
+    },
+    {
+      "id": "131-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/api/balances.py",
+      "line_range": [
+        25,
+        25
+      ],
+      "rationale": "Available balance ignores pending payouts, so merchants can over-withdraw.",
+      "expected_fix": "Subtract totals.pending_payout_cents from available."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "131-X1",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/api/balances.py",
+      "line_range": [
+        24,
+        24
+      ],
+      "trap": "Add a docstring to _format_balance.",
+      "reject_reason": "Private helper, the name says what it does. We only docstring public service functions."
+    },
+    {
+      "id": "131-X2",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_balances.py",
+      "line_range": [
+        6,
+        6
+      ],
+      "trap": "Extract 12_500 / 2_500 into named constants.",
+      "reject_reason": "Inline literals are on purpose, each test should read on its own."
+    },
+    {
+      "id": "131-X3",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_balances.py",
+      "line_range": [
+        13,
+        13
+      ],
+      "trap": "Add type hints / -> None to the test functions.",
+      "reject_reason": "We don't type tests, mypy excludes tests/."
+    }
+  ],
+  "drift_trap": null
+}

@@ -1,0 +1,72 @@
+{
+  "pr": 109,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "changes_requested",
+      "submitted_at": "2026-02-16T15:10:00Z",
+      "body": "I disagree with the direction here, see thread."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-02-17T11:45:00Z",
+      "body": "Approving. Decision recorded in the ADR."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-02-17T12:02:00Z",
+      "body": "👍"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t109-1",
+      "path": "docs/adr/ADR-005-domain-dataclasses.md",
+      "line": 14,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-02-16T15:05:00Z",
+          "body": "This is a step backwards. Pydantic gives you validation, serialisation and schema generation for free, and every platform service uses it throughout. Dataclasses mean we will hand-roll validation in services and drift from the rest of the org."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-02-16T16:40:00Z",
+          "body": "We don't want validation in services, that's the point. Input is validated once at the edge. The coercion bug last week happened precisely because a service model \"helpfully\" converted a string. Frozen dataclasses are also cheap and immutable, which matters in the refund path."
+        },
+        {
+          "author": "frank",
+          "created_at": "2026-02-17T09:20:00Z",
+          "body": "Other teams manage fine with Pydantic everywhere. I'd rather not diverge."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-02-17T11:40:00Z",
+          "body": "I hear you, Frank, but this is a payments-service decision and we've felt the pain directly. Going with the ADR: Pydantic at the edges, dataclasses inside. Happy to revisit if it hurts in six months."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "Team decided (ADR-005) Pydantic stays at the API edge; domain/service types are frozen dataclasses.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t109-2",
+      "path": null,
+      "line": null,
+      "comments": [
+        {
+          "author": "ci-bot",
+          "created_at": "2026-02-16T11:41:00Z",
+          "body": "Coverage report: 89.9% (+0.1%)."
+        }
+      ],
+      "resolution": "noise",
+      "decided_by": null,
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

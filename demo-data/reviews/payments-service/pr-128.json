@@ -1,0 +1,67 @@
+{
+  "pr": 128,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-07-06T13:30:00Z",
+      "body": "Almost; see thread."
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-07-06T15:00:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-07-07T10:15:00Z",
+      "body": "Textbook expand step, thanks Dan."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t128-1",
+      "path": "migrations/versions/0023_refunds_add_reason.py",
+      "line": 15,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-07-06T13:25:00Z",
+          "body": "The first version also dropped `note` in this migration, with the repo switched to `reason` in the same PR. That's the INC-19 pattern: old pods still read `note` during the rolling deploy. Keep the drop for a separate PR after reads have moved (ADR-008)."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-07-06T14:40:00Z",
+          "body": "Right, I split it up: this PR is add + dual-write only, and I've listed the steps in the description."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "7300b028e645e27c50ca9e4b6c5ce0ac0dfc37bd"
+    },
+    {
+      "id": "t128-2",
+      "path": "tests/test_refund_repo.py",
+      "line": 5,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-07-06T14:55:00Z",
+          "body": "`db_session` should be annotated and the test should declare `-> None`."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-07-06T16:10:00Z",
+          "body": "We don't type tests here; mypy excludes tests/ (came up in #111 and #125)."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "dan",
+      "rejection_reason": "We don't type tests; mypy excludes tests/.",
+      "follow_up_commit": null
+    }
+  ]
+}

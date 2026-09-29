@@ -1,0 +1,166 @@
+{
+  "ran_at": "2026-09-29T10:58:41.148660+00:00",
+  "bank": "reviewmind-acme-payments",
+  "mode": "local",
+  "requested": [
+    121,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "retained": [],
+  "failed": [],
+  "skipped_unchanged": [
+    121,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "concurrency_limit": 5,
+  "max_concurrency_observed": 0,
+  "wall_seconds": 0.0,
+  "runs": [],
+  "auto_consolidation_enabled": false,
+  "memory": {
+    "total_memory_units": 122,
+    "types_total": {
+      "world": 122
+    },
+    "by_document": {
+      "pr:payments-service:101": {
+        "world": 4
+      },
+      "pr:payments-service:102": {
+        "world": 2
+      },
+      "pr:payments-service:103": {
+        "world": 2
+      },
+      "pr:payments-service:104": {
+        "world": 6
+      },
+      "pr:payments-service:105": {
+        "world": 6
+      },
+      "pr:payments-service:106": {
+        "world": 4
+      },
+      "pr:payments-service:107": {
+        "world": 4
+      },
+      "pr:payments-service:108": {
+        "world": 3
+      },
+      "pr:payments-service:109": {
+        "world": 5
+      },
+      "pr:payments-service:110": {
+        "world": 4
+      },
+      "pr:payments-service:111": {
+        "world": 5
+      },
+      "pr:payments-service:112": {
+        "world": 3
+      },
+      "pr:payments-service:113": {
+        "world": 5
+      },
+      "pr:payments-service:114": {
+        "world": 3
+      },
+      "pr:payments-service:115": {
+        "world": 2
+      },
+      "pr:payments-service:116": {
+        "world": 3
+      },
+      "pr:payments-service:117": {
+        "world": 5
+      },
+      "pr:payments-service:118": {
+        "world": 4
+      },
+      "pr:payments-service:119": {
+        "world": 4
+      },
+      "pr:payments-service:120": {
+        "world": 2
+      },
+      "pr:payments-service:121": {
+        "world": 5
+      },
+      "pr:payments-service:122": {
+        "world": 4
+      },
+      "pr:payments-service:123": {
+        "world": 5
+      },
+      "pr:payments-service:124": {
+        "world": 4
+      },
+      "pr:payments-service:125": {
+        "world": 8
+      },
+      "pr:payments-service:126": {
+        "world": 1
+      },
+      "pr:payments-service:127": {
+        "world": 4
+      },
+      "pr:payments-service:128": {
+        "world": 4
+      },
+      "pr:payments-service:129": {
+        "world": 7
+      },
+      "pr:payments-service:130": {
+        "world": 4
+      }
+    },
+    "observations": 0,
+    "provenance_sample": {
+      "text": "erin suggested using Decimal for FX conversion intermediate results in payments-service PR #130, but bob rejected it citing ADR-007's mandate for int minor units with integer micro-rates | When: July 22, 2026 | Involving: erin (reviewer), bob (author, decided rejection) | ADR-007 already addresses precision with int-based approach; team moved away from Decimal to avoid rounding mismatches",
+      "type": "world",
+      "document_id": "pr:payments-service:130",
+      "tags": [
+        "source:pr_history",
+        "outcome:rejected",
+        "author:bob",
+        "pr:130",
+        "team:acme-payments",
+        "area:services",
+        "outcome:applied",
+        "area:api",
+        "repo:payments-service"
+      ],
+      "metadata": {
+        "adr": "",
+        "repo": "payments-service",
+        "team": "acme-payments",
+        "split": "history",
+        "state": "merged",
+        "author": "bob",
+        "source": "pr_history",
+        "outcomes": "t130-1=applied,t130-2=rejected",
+        "pr_title": "Payouts in a different currency than the balance",
+        "merged_at": "2026-07-24T12:30:00Z",
+        "pr_number": "130",
+        "created_at": "2026-07-22T10:15:00Z",
+        "thread_ids": "t130-1,t130-2",
+        "applied_count": "1",
+        "rejected_count": "1"
+      }
+    }
+  }
+}

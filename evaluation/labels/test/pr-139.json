@@ -1,0 +1,85 @@
+{
+  "pr": 139,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "139-F1",
+      "kind": "convention",
+      "convention": "C3",
+      "path": "app/clients/card_network.py",
+      "line_range": [
+        16,
+        17
+      ],
+      "rationale": "Uses requests for the status page call. The 'fine for now' stance (#102) was superseded by ADR-006: all outbound HTTP goes through make_client().",
+      "expected_fix": "Add _status_page = make_client(\"card_network_status_page\", settings.card_network_status_page_url) and drop the requests import."
+    },
+    {
+      "id": "139-F2",
+      "kind": "convention",
+      "convention": "C6",
+      "path": "app/services/network_health.py",
+      "line_range": [
+        26,
+        26
+      ],
+      "rationale": "Service raises FastAPI's HTTPException; services raise app.errors domain errors and app/api/errors.py maps them to HTTP.",
+      "expected_fix": "raise errors.ProviderUnavailable(...) (already mapped to 503)."
+    },
+    {
+      "id": "139-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/network_health.py",
+      "line_range": [
+        22,
+        23
+      ],
+      "rationale": "If the fallback also fails, the exception is swallowed and indicator 'none' maps to 'up': a total outage is reported as the network being healthy.",
+      "expected_fix": "Let the error propagate (or raise ProviderUnavailable) instead of defaulting to 'none'."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "139-X1",
+      "noise": "N5",
+      "exception": null,
+      "path": "app/services/network_health.py",
+      "line_range": [
+        16,
+        16
+      ],
+      "trap": "Retry the status API call with backoff before falling back to the status page.",
+      "reject_reason": "The shared client already retries 502/503/504; another retry layer on top is the INC-12 pattern."
+    },
+    {
+      "id": "139-X2",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_network_health.py",
+      "line_range": [
+        11,
+        11
+      ],
+      "trap": "Add type annotations to the status_api_down fixture (monkeypatch: pytest.MonkeyPatch) -> None.",
+      "reject_reason": "Tests aren't typed here; mypy doesn't even look at tests/."
+    },
+    {
+      "id": "139-X3",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_network_health.py",
+      "line_range": [
+        13,
+        13
+      ],
+      "trap": "Replace the literal 503 with a named constant or HTTPStatus.SERVICE_UNAVAILABLE.",
+      "reject_reason": "Literals in tests stay inline so the test reads on its own."
+    }
+  ],
+  "drift_trap": {
+    "conflict": "K2",
+    "expected": "Flag the requests call as a shared-client (ADR-006) violation despite the 'requests is fine here for now' comment; that position from #102 was superseded by ADR-006 in #110."
+  }
+}

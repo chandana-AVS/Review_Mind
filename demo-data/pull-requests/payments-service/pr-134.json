@@ -1,0 +1,32 @@
+{
+  "number": 134,
+  "title": "Let merchants configure their payout schedule",
+  "body": "Merchants can pick daily/weekly/monthly payouts and a minimum amount (PAY-102). The global minimum is configurable so ops can change it without a deploy.",
+  "author": "erin",
+  "created_at": "2026-08-17T11:10:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "payouts"
+  ],
+  "base_sha": "4770610907fa06b199d72f7da862a5354f4719f6",
+  "head_sha": "2c9944d8a745dbc083a72e25f58fb05a917a7e8c",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/payout_schedules.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+import os\n+\n+from app import errors\n+from app.db import session_scope\n+from app.domain.models import PayoutSchedule\n+from app.repos import payout_schedules as schedule_repo\n+from app.utils import clock\n+\n+VALID_INTERVALS = {\"daily\", \"weekly\", \"monthly\"}\n+MIN_PAYOUT_CENTS = int(os.environ.get(\"PAYOUT_MIN_CENTS\", \"1000\"))\n+\n+\n+def update_schedule(*, merchant_id: str, interval: str, minimum_cents: int) -> PayoutSchedule:\n+    if interval not in VALID_INTERVALS:\n+        raise errors.Conflict(f\"unsupported payout interval {interval!r}\")\n+    if minimum_cents < MIN_PAYOUT_CENTS:\n+        raise errors.Conflict(f\"minimum payout is {MIN_PAYOUT_CENTS} cents\")\n+    schedule = PayoutSchedule(\n+        merchant_id=merchant_id,\n+        interval=interval,\n+        minimum_cents=minimum_cents,\n+        updated_at=clock.now(),\n+    )\n+    with session_scope() as session:\n+        schedule_repo.upsert(session, schedule)\n+    return schedule"
+    },
+    {
+      "path": "tests/test_payout_schedules.py",
+      "status": "added",
+      "additions": 18,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,18 @@\n+import pytest\n+\n+from app import errors\n+from app.domain.models import PayoutSchedule\n+from app.services import payout_schedules\n+\n+\n+def test_update_schedule_weekly(fake_repos, frozen_clock):\n+    schedule = payout_schedules.update_schedule(merchant_id=\"m_1\", interval=\"weekly\", minimum_cents=5_000)\n+\n+    assert schedule == PayoutSchedule(\n+        merchant_id=\"m_1\", interval=\"weekly\", minimum_cents=5_000, updated_at=frozen_clock\n+    )\n+\n+\n+def test_update_schedule_rejects_hourly(fake_repos):\n+    with pytest.raises(errors.Conflict):\n+        payout_schedules.update_schedule(merchant_id=\"m_1\", interval=\"hourly\", minimum_cents=5_000)"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "pr": 118,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-04-15T14:30:00Z",
+      "body": "Worried about precision here."
+    },
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-04-15T17:10:00Z",
+      "body": "One real bug (fixed now?) and a reply to Frank."
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-04-16T12:25:00Z",
+      "body": "Nice work on the spreadsheet check."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t118-1",
+      "path": "app/services/fx.py",
+      "line": 15,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-04-15T14:25:00Z",
+          "body": "FX is exactly where you want Decimal. Integer micro-rates and hand-written rounding feels fragile; `Decimal(amount) * Decimal(rate)` with a quantize is clearer and is what every FX library does."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-04-15T17:00:00Z",
+          "body": "We moved away from Decimal on purpose in ADR-007 (#112). Everything is int minor units and rounding happens once, in round_half_even_div, so the ledger and the bank agree to the unit. Dan's spreadsheet check is the proof. Introducing Decimal here would reintroduce the int<->Decimal boundary we just removed."
+        },
+        {
+          "author": "frank",
+          "created_at": "2026-04-16T09:40:00Z",
+          "body": "OK, if finance signed off on the numbers."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "ADR-007: money stays int minor units; round_half_even_div is the single rounding point.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t118-2",
+      "path": "app/services/fx.py",
+      "line": 25,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-04-15T17:05:00Z",
+          "body": "The first version had `int(amount_cents * 0.005)`. That's float maths on money and it truncates instead of rounding. Please use the helper (`apply_bps(amount_cents, 50)` reads best) or at least integer maths."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-04-16T10:15:00Z",
+          "body": "Oops, leftover from my prototype. Switched to integer maths with round_half_even_div."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "663f36dad3031574e7670428945e64baf9e3e797"
+    }
+  ]
+}

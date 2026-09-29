@@ -1,0 +1,72 @@
+{
+  "pr": 117,
+  "reviews": [
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-04-08T13:40:00Z",
+      "body": "One layering issue."
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-04-08T15:20:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-04-09T10:10:00Z",
+      "body": "👍"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t117-1",
+      "path": "app/services/charges.py",
+      "line": 17,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-04-08T13:35:00Z",
+          "body": "The first commit raised `HTTPException(status_code=409)` here. Services shouldn't know about HTTP: they're also called from the payout worker and the CLI, where an HTTPException makes no sense. Raise the domain error and let the handler in api/errors.py pick the status."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-04-08T14:20:00Z",
+          "body": "Makes sense, that's the whole point of this PR, embarrassing 🙂. Switched to errors.Conflict."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "95793cf3e8d366c45889fb072774e62c9f617fe6"
+    },
+    {
+      "id": "t117-2",
+      "path": "app/api/errors.py",
+      "line": 2,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-04-08T15:15:00Z",
+          "body": "Imports aren't grouped the way I'd expect: stdlib, third-party, local, each alphabetised. Can you reorder?"
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-04-08T16:00:00Z",
+          "body": "ruff's isort rule and ruff-format run in pre-commit and CI, so whatever lands is what the tool wants. I'd rather not hand-tune import order in review."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-04-09T10:05:00Z",
+          "body": "Agreed, formatting is the tool's job, not the reviewer's."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "carol",
+      "rejection_reason": "Import order is enforced by ruff in pre-commit; not a review topic.",
+      "follow_up_commit": null
+    }
+  ]
+}

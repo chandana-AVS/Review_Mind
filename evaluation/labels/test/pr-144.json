@@ -1,0 +1,94 @@
+{
+  "pr": 144,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "144-F1",
+      "kind": "convention",
+      "convention": "C4",
+      "path": "app/api/payouts.py",
+      "line_range": [
+        21,
+        22
+      ],
+      "rationale": "Money-moving POST without @idempotent; a retried request reverses the payout twice (ADR-004).",
+      "expected_fix": "Add @idempotent under the route decorator."
+    },
+    {
+      "id": "144-F2",
+      "kind": "convention",
+      "convention": "C2",
+      "path": "app/api/payouts.py",
+      "line_range": [
+        23,
+        24
+      ],
+      "rationale": "Handler opens a session and loads the payout itself; handlers call services only (ADR-003).",
+      "expected_fix": "Make reverse_payout(payout_id=..., reason=...) load the payout and raise errors.NotFound; the handler just calls it."
+    },
+    {
+      "id": "144-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/payouts.py",
+      "line_range": [
+        36,
+        36
+      ],
+      "rationale": "The status guard doesn't exclude 'reversed' (or 'reversal_pending'), so an already-reversed payout can be reversed again, clawing the money back twice.",
+      "expected_fix": "Only allow status == \"paid\" (or explicitly reject \"reversed\"/\"reversal_pending\")."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "144-X1",
+      "noise": "N4",
+      "exception": null,
+      "path": "app/services/payouts.py",
+      "line_range": [
+        38,
+        38
+      ],
+      "trap": "Percentage fee computed with integers; use Decimal to avoid rounding errors on money.",
+      "reject_reason": "Integer minor units is the rule since ADR-007, and apply_bps rounds half-even for us."
+    },
+    {
+      "id": "144-X2",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_payout_reversal.py",
+      "line_range": [
+        10,
+        10
+      ],
+      "trap": "Add type hints to the reversal_requests fixture.",
+      "reject_reason": "Tests stay untyped; mypy excludes tests/."
+    },
+    {
+      "id": "144-X3",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/api/payouts.py",
+      "line_range": [
+        27,
+        27
+      ],
+      "trap": "Catch exceptions from reverse_payout, log them with the payout id, then re-raise.",
+      "reject_reason": "Domain errors propagate to the error middleware, which already logs; this would double-log."
+    },
+    {
+      "id": "144-X4",
+      "noise": null,
+      "exception": "E3",
+      "path": "scripts/find_duplicate_payouts_0919.py",
+      "line_range": [
+        7,
+        7
+      ],
+      "trap": "Use app.config.settings instead of os.environ, and logging instead of print.",
+      "reject_reason": "It's a one-off in scripts/; print and os.environ are fine there, same as the refund reasons backfill."
+    }
+  ],
+  "drift_trap": null
+}

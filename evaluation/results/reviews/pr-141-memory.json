@@ -1,0 +1,252 @@
+{
+  "pr": 141,
+  "title": "Redis health check",
+  "bank": "reviewmind-acme-payments",
+  "use_memory": true,
+  "created_at": "2026-09-29T15:00:54.153897+00:00",
+  "seconds": {
+    "recall_s": 0.9,
+    "reflect_s": 236.0,
+    "total_s": 237.0
+  },
+  "signals": {
+    "config": [
+      "app/api/health.py:14"
+    ],
+    "webhook_health": [
+      "app/api/health.py:26",
+      "tests/test_health.py:16"
+    ],
+    "time": [
+      "app/api/health.py:33"
+    ],
+    "private_helper": [
+      "app/api/health.py:38",
+      "app/api/health.py:47"
+    ],
+    "db_session": [
+      "app/api/health.py:40",
+      "app/api/health.py:41"
+    ],
+    "errors": [
+      "app/api/health.py:42",
+      "app/api/health.py:50"
+    ]
+  },
+  "recall_probes": [
+    "time",
+    "config",
+    "errors",
+    "db_session",
+    "webhook_health",
+    "private_helper",
+    "tests"
+  ],
+  "memories_recalled": 18,
+  "team_brief": [
+    {
+      "rule": "Health and metrics endpoints can touch infrastructure directly to verify DB/Redis connectivity (ADR-003 exception established April 2, 2026)",
+      "evidence": [
+        {
+          "label": "M12",
+          "memory_id": "c0fd3480-c3b7-41d8-b0f3-664777753115",
+          "type": "world",
+          "text": "alice added exception to ADR-003 on April 02, 2026: health and metrics endpoints can touch infrastructure directly to verify DB/Redis connectivity; business endpoints still require service layer | When: April 02, 2026 | Involving: alice | Operational endpoints need to check infrastructure directly; prevents repeated discussions",
+          "document_id": "pr:payments-service:116",
+          "sources": [
+            "PR #116"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "All environment variable reads must be added to Settings class rather than using os.environ directly, to ensure visibility in config docs and prevent test crashes",
+      "evidence": [
+        {
+          "label": "M8",
+          "memory_id": "11e4913b-05f8-48e8-9e5a-4b7dd8348e3e",
+          "type": "world",
+          "text": "Acme Payments team requires all environment variable reads to be added to the Settings class rather than using os.environ directly, to ensure visibility in config docs, prevent test crashes, and maintain the PAYMENTS_ prefix convention | When: May 13, 2026 | Involving: bob (reviewer), carol (author) | Scattered os.environ reads are invisible to config docs, crash at import time in tests, and skip the PAYMENTS_ prefix used in every deployment",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Use clock.now() from app.utils.clock instead of datetime.now() or datetime.utcnow() for timezone awareness and test determinism",
+      "evidence": [
+        {
+          "label": "M5",
+          "memory_id": "23980805-8483-42cc-831b-c1ddf85c45cf",
+          "type": "world",
+          "text": "Acme Payments team enforces use of clock.now() instead of datetime.utcnow() in payments-service; carol required dan to change datetime.utcnow() to clock.now() in PR #120, and bob previously caught the same issue in dan's settlement PR #105 | When: April 29, 2026 | Involving: carol (reviewer, enforced), dan (author), bob (previously enforced in PR #105) | clock.now() is timezone-aware and prevents test flakiness around midnight when freezing time in tests",
+          "document_id": "pr:payments-service:120",
+          "sources": [
+            "PR #120"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Private helper functions (underscore-prefixed) don't require docstrings; name and implementation are sufficient documentation",
+      "evidence": [
+        {
+          "label": "M6",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M15",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "title": "Environment variable read not in Settings class",
+      "file": "app/api/health.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "configuration",
+      "classification": "TEAM_CONVENTION",
+      "basis": "hindsight_memory",
+      "explanation": "os.environ.get(\"PAYMENTS_REDIS_URL\") violates team convention requiring all environment variables to be defined in Settings class. This ensures visibility in config docs, prevents test crashes from missing variables at import time, and maintains PAYMENTS_ prefix convention.",
+      "recommendation": "Add REDIS_URL to app/config.py Settings class and use Settings().redis_url here. Import settings from app.config at module level.",
+      "confidence": 0.95,
+      "memory_evidence": [
+        {
+          "label": "M8",
+          "memory_id": "11e4913b-05f8-48e8-9e5a-4b7dd8348e3e",
+          "type": "world",
+          "text": "Acme Payments team requires all environment variable reads to be added to the Settings class rather than using os.environ directly, to ensure visibility in config docs, prevent test crashes, and maintain the PAYMENTS_ prefix convention | When: May 13, 2026 | Involving: bob (reviewer), carol (author) | Scattered os.environ reads are invisible to config docs, crash at import time in tests, and skip the PAYMENTS_ prefix used in every deployment",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #122"
+      ]
+    },
+    {
+      "title": "Using datetime.now() instead of clock.now()",
+      "file": "app/api/health.py",
+      "line": 33,
+      "severity": "medium",
+      "category": "testing",
+      "classification": "TEAM_CONVENTION",
+      "basis": "hindsight_memory",
+      "explanation": "datetime.now() should be clock.now() from app.utils.clock. Team enforces this for timezone awareness and to support test fixtures that freeze time to deterministic dates.",
+      "recommendation": "Import clock from app.utils.clock and change datetime.now().isoformat() to clock.now().isoformat(). Remove datetime import from line 2.",
+      "confidence": 0.95,
+      "memory_evidence": [
+        {
+          "label": "M5",
+          "memory_id": "23980805-8483-42cc-831b-c1ddf85c45cf",
+          "type": "world",
+          "text": "Acme Payments team enforces use of clock.now() instead of datetime.utcnow() in payments-service; carol required dan to change datetime.utcnow() to clock.now() in PR #120, and bob previously caught the same issue in dan's settlement PR #105 | When: April 29, 2026 | Involving: carol (reviewer, enforced), dan (author), bob (previously enforced in PR #105) | clock.now() is timezone-aware and prevents test flakiness around midnight when freezing time in tests",
+          "document_id": "pr:payments-service:120",
+          "sources": [
+            "PR #120"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #120"
+      ]
+    }
+  ],
+  "suppressed": [
+    {
+      "suggestion": "Add docstrings to _check_database() and _check_redis() helper functions",
+      "file": "app/api/health.py",
+      "line": 38,
+      "reason": "Team convention established that private helper functions (underscore-prefixed) are self-documenting through their names and implementation; docstrings only required for public service functions.",
+      "evidence": [
+        "M6",
+        "M15"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M6",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M15",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #122",
+        "PR #129"
+      ]
+    },
+    {
+      "suggestion": "Add type annotations to test functions in test_health.py",
+      "file": "tests/test_health.py",
+      "line": 12,
+      "reason": "Team does not add type hints to test functions or fixtures; mypy excludes tests/ directory.",
+      "evidence": [
+        "M17",
+        "M18"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M17",
+          "memory_id": "d1bf8fbb-652d-49ba-a42e-13eb76fabdac",
+          "type": "world",
+          "text": "In PR #128 thread t128-2, frank's suggestion to add type annotations to test file (db_session annotation and -> None return type) was rejected by dan because team doesn't type tests | When: 2026-07-06 | Involving: frank (reviewer), dan (author) | Team convention excludes tests/ from mypy",
+          "document_id": "pr:payments-service:128",
+          "sources": [
+            "PR #128"
+          ]
+        },
+        {
+          "label": "M18",
+          "memory_id": "bb535ae3-53ec-4e53-85e0-cf3caa68a6cc",
+          "type": "world",
+          "text": "Team does not add type hints to test functions or fixtures; mypy excludes tests/ (established when bob rejected frank's suggestion) | When: June 04, 2026 | Involving: frank (suggested), bob (rejected) | mypy excludes tests/",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #125",
+        "PR #128"
+      ]
+    }
+  ],
+  "dropped_unsupported": [],
+  "reflect_based_on": []
+}

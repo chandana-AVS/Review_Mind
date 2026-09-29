@@ -1,0 +1,47 @@
+{
+  "number": 144,
+  "title": "Payout reversal endpoint",
+  "body": "Adds `POST /payouts/{payout_id}/reversal` so ops can claw back a payout that went out by mistake, instead of asking the bank by email. The bank's 0.25% reversal fee is passed on to the merchant.\n\nAlso adds a one-off script that lists the payouts duplicated by the 09-19 bank file replay; ops will reverse those with the new endpoint once this is deployed.",
+  "author": "erin",
+  "created_at": "2026-09-25T15:02:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "payouts",
+    "ops"
+  ],
+  "base_sha": "0faed061dceddc77ba06776ebcde93185f91315b",
+  "head_sha": "8b82d9d22b97a1469d0ccabecac208fff137c98c",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/payouts.py",
+      "status": "modified",
+      "additions": 13,
+      "deletions": 1,
+      "patch": "@@ -1,6 +1,8 @@\n-from fastapi import APIRouter\n+from fastapi import APIRouter, Body, HTTPException\n \n from app.api.schemas import CreatePayoutRequest, PayoutResponse\n+from app.db import session_scope\n+from app.repos import payouts as payout_repo\n from app.services import payouts as payout_service\n from app.utils.idempotency import idempotent\n \n@@ -14,3 +16,13 @@\n         merchant_id=body.merchant_id, amount_cents=body.amount_cents, currency=body.currency\n     )\n     return PayoutResponse(**payout.as_dict())\n+\n+\n+@router.post(\"/{payout_id}/reversal\", response_model=PayoutResponse, status_code=201)\n+def reverse_payout(payout_id: str, reason: str = Body(embed=True)) -> PayoutResponse:\n+    with session_scope() as session:\n+        payout = payout_repo.get(session, payout_id)\n+    if payout is None:\n+        raise HTTPException(status_code=404, detail=f\"payout {payout_id} not found\")\n+    reversal = payout_service.reverse_payout(payout, reason=reason)\n+    return PayoutResponse(**reversal.as_dict())"
+    },
+    {
+      "path": "app/services/payouts.py",
+      "status": "modified",
+      "additions": 27,
+      "deletions": 0,
+      "patch": "@@ -1,6 +1,8 @@\n+from app import errors\n from app.clients import bank_transfers\n from app.db import session_scope\n from app.domain.models import Payout\n+from app.domain.money import apply_bps\n from app.repos import payouts as payout_repo\n from app.utils import clock\n from app.utils.ids import new_id\n@@ -23,3 +25,28 @@\n     bank_transfers.submit(payout)\n     log.info(\"payout_submitted\", payout_id=payout.id, merchant_id=merchant_id)\n     return payout\n+\n+\n+# Bank charges us 0.25% to claw a transfer back; passed through to the merchant.\n+REVERSAL_FEE_BPS = 25\n+\n+\n+def reverse_payout(payout: Payout, *, reason: str) -> Payout:\n+    \"\"\"Claw back a sent payout, minus the bank's reversal fee.\"\"\"\n+    if payout.status in (\"pending\", \"failed\"):\n+        raise errors.Conflict(f\"payout {payout.id} was never sent, cancel it instead\")\n+    fee_cents = apply_bps(payout.amount_cents, REVERSAL_FEE_BPS)\n+    reversal = Payout(\n+        id=new_id(\"por\"),\n+        merchant_id=payout.merchant_id,\n+        amount_cents=payout.amount_cents - fee_cents,\n+        currency=payout.currency,\n+        status=\"reversal_pending\",\n+        created_at=clock.now(),\n+    )\n+    with session_scope() as session:\n+        payout_repo.insert(session, reversal)\n+        payout_repo.set_status(session, payout.id, \"reversed\", clock.now())\n+    bank_transfers.request_reversal(original=payout, reversal=reversal)\n+    log.info(\"payout_reversal_requested\", payout_id=payout.id, reversal_id=reversal.id, reason=reason)\n+    return reversal"
+    },
+    {
+      "path": "scripts/find_duplicate_payouts_0919.py",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,19 @@\n+\"\"\"One-off: list payouts duplicated by the 2026-09-19 bank file replay, for ops to reverse.\"\"\"\n+\n+import os\n+\n+from sqlalchemy import create_engine, text\n+\n+engine = create_engine(os.environ[\"DATABASE_URL\"])\n+\n+with engine.connect() as conn:\n+    rows = conn.execute(text(\"\"\"\n+        SELECT p.id, p.merchant_id, p.amount_cents, p.currency\n+        FROM payouts p\n+        JOIN payouts orig ON orig.merchant_id = p.merchant_id\n+            AND orig.amount_cents = p.amount_cents\n+            AND orig.id < p.id\n+        WHERE p.created_at::date = '2026-09-19' AND p.status = 'paid'\n+    \"\"\"))\n+    for row in rows:\n+        print(row.id, row.merchant_id, row.amount_cents, row.currency)"
+    },
+    {
+      "path": "tests/test_payout_reversal.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+import pytest\n+\n+from app import errors\n+from app.clients import bank_transfers\n+from app.services import payouts\n+from tests.factories import make_payout\n+\n+\n+@pytest.fixture\n+def reversal_requests(monkeypatch):\n+    calls = []\n+    monkeypatch.setattr(bank_transfers, \"request_reversal\", lambda **kw: calls.append(kw))\n+    return calls\n+\n+\n+def test_reverse_payout__paid__returns_amount_minus_fee(fake_repos, reversal_requests, frozen_clock):\n+    reversal = payouts.reverse_payout(make_payout(status=\"paid\", amount_cents=50_000), reason=\"duplicate\")\n+\n+    assert reversal.amount_cents == 49_875\n+    assert len(reversal_requests) == 1\n+\n+\n+def test_reverse_payout__pending__raises_conflict(fake_repos, reversal_requests):\n+    with pytest.raises(errors.Conflict):\n+        payouts.reverse_payout(make_payout(status=\"pending\"), reason=\"duplicate\")"
+    }
+  ]
+}

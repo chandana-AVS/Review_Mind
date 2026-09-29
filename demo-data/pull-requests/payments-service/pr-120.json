@@ -1,0 +1,25 @@
+{
+  "number": 120,
+  "title": "Monthly invoice PDFs for merchants",
+  "body": "Generates a monthly fee invoice per merchant (FIN-19). Line items come from the fee ledger; rendering is done by the shared pdf-renderer service. The cron wiring is in the jobs repo.",
+  "author": "dan",
+  "created_at": "2026-04-28T09:20:00Z",
+  "merged_at": "2026-04-30T11:30:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "billing"
+  ],
+  "base_sha": "194a4f123c977eddd511507c1234ae76be87f5b3",
+  "head_sha": "dbd7820d6ebd1b5f221e0a261833b7eb76989620",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/invoices.py",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,33 @@\n+from app import errors\n+from app.clients import pdf_renderer\n+from app.db import session_scope\n+from app.repos import invoices as invoice_repo\n+from app.repos import merchants as merchant_repo\n+from app.utils import clock\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+\n+def generate_monthly_invoice(merchant_id: str, year: int, month: int) -> str:\n+    with session_scope() as session:\n+        merchant = merchant_repo.get(session, merchant_id)\n+        if merchant is None:\n+            raise errors.NotFound(f\"merchant {merchant_id} not found\")\n+        lines = invoice_repo.fee_lines(session, merchant_id, year, month)\n+        total_cents = sum(line.fee_cents for line in lines)\n+        document = {\n+            \"merchant\": {\"id\": merchant.id, \"legal_name\": merchant.legal_name, \"vat_id\": merchant.vat_id},\n+            \"period\": f\"{year}-{month:02d}\",\n+            \"issued_at\": clock.now().isoformat(),\n+            \"currency\": merchant.settlement_currency,\n+            \"lines\": [\n+                {\"description\": line.description, \"count\": line.count, \"fee_cents\": line.fee_cents}\n+                for line in lines\n+            ],\n+            \"total_cents\": total_cents,\n+        }\n+        pdf_key = pdf_renderer.render(\"monthly_invoice\", document)\n+        invoice_repo.insert(session, merchant_id, year, month, total_cents, pdf_key)\n+    log.info(\"invoice_generated\", merchant_id=merchant_id, period=document[\"period\"])\n+    return pdf_key"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "pr": 106,
+  "reviews": [
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-02-02T14:02:00Z",
+      "body": "Please don't reintroduce float, see inline."
+    },
+    {
+      "reviewer": "bob",
+      "state": "commented",
+      "submitted_at": "2026-02-02T16:30:00Z",
+      "body": "Tests need the usual naming and factories."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-02-03T17:40:00Z",
+      "body": "Good to go."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t106-1",
+      "path": "app/services/charges.py",
+      "line": 40,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-02-02T13:58:00Z",
+          "body": "Keep Decimal end-to-end. We just spent #103 getting floats out of the charge path, and\nthese `float()` casts put them straight back into the one comparison that decides\nwhether a capture goes through: `float(Decimal(\"0.3\")) - float(Decimal(\"0.1\"))` is not\n0.2. Both sides are already Decimal from the model, so just subtract them."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-02T15:12:00Z",
+          "body": "Leftover from debugging the comparison with a float in the test. Removing the casts."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-03T10:05:00Z",
+          "body": "Done, plain Decimal arithmetic now and the error message prints the Decimal."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "d8bf19b3f498bdafdf66118385d04cb26f93e70a"
+    },
+    {
+      "id": "t106-2",
+      "path": "tests/test_charges.py",
+      "line": 19,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-02-02T16:26:00Z",
+          "body": "Could you rename these to the `test_<unit>__<scenario>__<expected>` form from CONTRIBUTING, e.g. `test_capture_charge__partial_amount__records_captured_amount` and `test_capture_charge__exceeds_remaining__raises_conflict`? When one fails in CI the name alone should tell you what broke. And please use `make_charge(...)` from `tests/factories.py` instead of the local `_charge()` builder. Every test file growing its own builder is how we ended up with six slightly different fake charges last year."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-03T09:40:00Z",
+          "body": "Fair on both. `make_charge` just needs `status=\"authorized\"` and `captured_amount=Decimal(\"0\")` overrides."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-03T10:06:00Z",
+          "body": "Renamed and switched to the factory."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "b941465734ef35d066acfab222270dcf7cd49e9b"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "pr": 122,
+  "reviews": [
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-05-13T12:30:00Z",
+      "body": "Config nit that isn't a nit."
+    },
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-05-13T14:45:00Z",
+      "body": "Layering."
+    },
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-05-13T16:20:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-05-14T11:00:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t122-1",
+      "path": "app/services/payment_methods.py",
+      "line": 7,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-05-13T12:25:00Z",
+          "body": "First version read `os.environ[\"TOKENIZER_URL\"]` here. Please add it to `Settings` instead: env reads scattered around app/ are invisible to the config docs, crash at import time in tests, and skip the PAYMENTS_ prefix we use in every deployment."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-05-13T13:40:00Z",
+          "body": "Fair. Added `tokenizer_base_url` to Settings."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "a8b9601c4fe84e86de1c163740bb138ba8630719"
+    },
+    {
+      "id": "t122-2",
+      "path": "app/api/payment_methods.py",
+      "line": 11,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-05-13T14:40:00Z",
+          "body": "The first commit queried `pm_repo.list_active` with a session right in the handler. Same thing as #104: handlers call a service, the service owns the session."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-05-13T15:30:00Z",
+          "body": "Moved into `payment_methods.list_for_customer`."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "ba721cfc13adf16d4484cb9d749dfb540752a7cf"
+    },
+    {
+      "id": "t122-3",
+      "path": "app/services/payment_methods.py",
+      "line": 16,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-05-13T16:15:00Z",
+          "body": "Please add a docstring to `_with_display_details` explaining what it returns."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-05-13T17:00:00Z",
+          "body": "It's a private helper and the name plus the type hints say it all. We document public service functions, not every underscore helper."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "carol",
+      "rejection_reason": "Private helpers are self-documenting by name; we only document public service functions.",
+      "follow_up_commit": null
+    }
+  ]
+}

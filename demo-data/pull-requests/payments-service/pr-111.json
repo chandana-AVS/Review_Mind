@@ -1,0 +1,39 @@
+{
+  "number": 111,
+  "title": "Payouts: POST /payouts",
+  "body": "First slice of merchant payouts (PAY-88). Creates a pending payout and submits it to the bank transfer client. Settlement status updates come in a follow-up via the bank webhook.",
+  "author": "carol",
+  "created_at": "2026-03-02T10:20:00Z",
+  "merged_at": "2026-03-04T09:45:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "payouts"
+  ],
+  "base_sha": "5c5f56c8b657c8094a268e253ad5b6e9751e7731",
+  "head_sha": "7f7d2426f69f568498c657653575a8ce1e72c579",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/payouts.py",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,16 @@\n+from fastapi import APIRouter\n+\n+from app.api.schemas import CreatePayoutRequest, PayoutResponse\n+from app.services import payouts as payout_service\n+from app.utils.idempotency import idempotent\n+\n+router = APIRouter(prefix=\"/payouts\", tags=[\"payouts\"])\n+\n+\n+@router.post(\"\", response_model=PayoutResponse, status_code=201)\n+@idempotent\n+def create_payout(body: CreatePayoutRequest) -> PayoutResponse:\n+    payout = payout_service.create_payout(\n+        merchant_id=body.merchant_id, amount=body.amount, currency=body.currency\n+    )\n+    return PayoutResponse(**payout.as_dict())"
+    },
+    {
+      "path": "app/services/payouts.py",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,26 @@\n+import logging\n+from decimal import Decimal\n+\n+from app.clients import bank_transfers\n+from app.db import session_scope\n+from app.domain.models import Payout\n+from app.repos import payouts as payout_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def create_payout(*, merchant_id: str, amount: Decimal, currency: str) -> Payout:\n+    payout = Payout(\n+        id=new_id(\"po\"),\n+        merchant_id=merchant_id,\n+        amount=amount,\n+        currency=currency,\n+        status=\"pending\",\n+        created_at=clock.now(),\n+    )\n+    with session_scope() as session:\n+        payout_repo.insert(session, payout)\n+    bank_transfers.submit(payout)\n+    return payout"
+    },
+    {
+      "path": "tests/test_payouts.py",
+      "status": "added",
+      "additions": 21,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,21 @@\n+from decimal import Decimal\n+\n+from app.services import payouts\n+from tests.factories import make_merchant\n+\n+\n+def test_create_payout__valid_request__returns_pending_payout(fake_repos, fake_bank, frozen_clock):\n+    fake_repos.merchants.add(make_merchant(id=\"m_1\"))\n+\n+    payout = payouts.create_payout(merchant_id=\"m_1\", amount=Decimal(\"500.00\"), currency=\"EUR\")\n+\n+    assert payout.status == \"pending\"\n+    assert fake_bank.submitted == [payout]\n+\n+\n+def test_create_payout__bank_submission__uses_payout_currency(fake_repos, fake_bank):\n+    fake_repos.merchants.add(make_merchant(id=\"m_1\"))\n+\n+    payouts.create_payout(merchant_id=\"m_1\", amount=Decimal(\"10.00\"), currency=\"GBP\")\n+\n+    assert fake_bank.submitted[0].currency == \"GBP\""
+    }
+  ]
+}

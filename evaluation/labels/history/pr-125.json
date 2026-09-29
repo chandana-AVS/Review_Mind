@@ -1,0 +1,50 @@
+{
+  "pr": 125,
+  "threads": {
+    "t125-1": {
+      "convention": "C2",
+      "noise": null,
+      "mistake": "M4",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t125-2": {
+      "convention": "C4",
+      "noise": null,
+      "mistake": "M5",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t125-3": {
+      "convention": "C7",
+      "noise": null,
+      "mistake": "M2",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t125-4": {
+      "convention": "C8",
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t125-5": {
+      "convention": null,
+      "noise": "N2",
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

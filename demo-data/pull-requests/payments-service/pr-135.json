@@ -1,0 +1,33 @@
+{
+  "number": 135,
+  "title": "Notify merchants of refunds via their webhook URL",
+  "body": "Merchants with a webhook URL configured now get a signed `refund.created` event (API-77). Signature is HMAC-SHA256 with the merchant's webhook secret, same scheme as the docs describe.",
+  "author": "dan",
+  "created_at": "2026-08-21T09:50:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "webhooks",
+    "refunds"
+  ],
+  "base_sha": "1e25c1bc2a8b4cc6337c637207507874ba95dbc2",
+  "head_sha": "b07847ae4230a9a239712a0c51cd535b8c79caa9",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/merchant_webhooks.py",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,37 @@\n+import hashlib\n+import hmac\n+\n+import httpx\n+\n+from app.db import session_scope\n+from app.domain.models import Refund\n+from app.repos import merchants as merchant_repo\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+\n+def send_refund_webhook(refund: Refund, merchant_id: str) -> None:\n+    with session_scope() as session:\n+        merchant = merchant_repo.get(session, merchant_id)\n+    if merchant is None or not merchant.webhook_url:\n+        return\n+    payload = {\n+        \"type\": \"refund.created\",\n+        \"refund_id\": refund.id,\n+        \"amount_cents\": refund.amount_cents,\n+        \"currency\": refund.currency,\n+    }\n+    signature = _sign(str(payload), merchant.webhook_secret)\n+    response = httpx.post(\n+        merchant.webhook_url,\n+        json=payload,\n+        headers={\"Acme-Signature\": signature},\n+        timeout=5.0,\n+    )\n+    response.raise_for_status()\n+    log.info(\"refund_webhook_sent\", refund_id=refund.id, merchant_email=merchant.email)\n+\n+\n+def _sign(body: str, secret: str) -> str:\n+    return hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()"
+    },
+    {
+      "path": "tests/test_merchant_webhooks.py",
+      "status": "added",
+      "additions": 14,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,14 @@\n+from app.services import merchant_webhooks\n+from tests.factories import make_merchant, make_refund\n+\n+\n+def test_send_refund_webhook__merchant_with_url__posts_signed_payload(fake_repos, http_mock):\n+    fake_repos.merchants.add(\n+        make_merchant(id=\"m_1\", webhook_url=\"https://merchant.example/hooks\", webhook_secret=\"whsec_1\")\n+    )\n+    http_mock.post(\"https://merchant.example/hooks\").respond(200)\n+\n+    merchant_webhooks.send_refund_webhook(make_refund(amount_cents=4_999), \"m_1\")\n+\n+    assert http_mock.calls.call_count == 1\n+    assert http_mock.calls.last.request.headers[\"Acme-Signature\"]"
+    }
+  ]
+}

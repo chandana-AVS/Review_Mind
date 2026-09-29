@@ -1,0 +1,39 @@
+{
+  "number": 138,
+  "title": "Payout batching",
+  "body": "Merchants with high payout volume are hitting the bank's per-request rate limit. This groups a merchant's pending payouts into bulk transfer files of up to 200 instructions (the bank's limit).\n\n- `POST /payouts/batches` submits all pending payouts for a merchant/currency\n- `GET /payouts/batches/{batch_id}` lists what went into a batch, for support\n\nThe repo queries (`list_pending`, `list_by_batch`, `mark_batched`) and the `batch_id` column landed with the payout status migration last week.",
+  "author": "dan",
+  "created_at": "2026-09-03T14:32:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "payouts"
+  ],
+  "base_sha": "9ac04092ddc1e2b14f1cfa4f664d915c9820aa79",
+  "head_sha": "414f965e8ce9e0d6d88eedaff606d21865bf1d41",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/payout_batches.py",
+      "status": "added",
+      "additions": 34,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,34 @@\n+from app.clients import bank_transfers\n+from app.utils.logging import get_logger\n+from app.domain.models import Payout\n+from app.db import session_scope\n+from app.repos import payouts as payout_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+\n+log = get_logger(__name__)\n+\n+# The bank's bulk transfer API rejects files with more than 200 instructions.\n+MAX_BATCH_SIZE = 200\n+\n+\n+def submit_pending_batches(*, merchant_id: str, currency: str) -> list[str]:\n+    \"\"\"Submit a merchant's pending payouts to the bank in batches of MAX_BATCH_SIZE.\"\"\"\n+    with session_scope() as session:\n+        pending = payout_repo.list_pending(session, merchant_id=merchant_id, currency=currency)\n+\n+    batch_ids = []\n+    for batch in _chunk(pending, MAX_BATCH_SIZE):\n+        batch_id = new_id(\"pb\")\n+        bank_transfers.submit_batch(batch_id, batch)\n+        with session_scope() as session:\n+            payout_repo.mark_batched(session, [p.id for p in batch], batch_id, clock.now())\n+        batch_ids.append(batch_id)\n+\n+    log.info(f\"submitted {len(batch_ids)} payout batches for merchant {merchant_id}\")\n+    return batch_ids\n+\n+\n+def _chunk(payouts: list[Payout], size: int) -> list[list[Payout]]:\n+    batch_count = len(payouts) // size\n+    return [payouts[i * size : (i + 1) * size] for i in range(batch_count)]"
+    },
+    {
+      "path": "app/api/payouts.py",
+      "status": "modified",
+      "additions": 20,
+      "deletions": 1,
+      "patch": "@@ -1,6 +1,9 @@\n from fastapi import APIRouter\n \n-from app.api.schemas import CreatePayoutRequest, PayoutResponse\n+from app.api.schemas import CreatePayoutRequest, PayoutResponse, SubmitPayoutBatchesRequest\n+from app.db import session_scope\n+from app.repos import payouts as payout_repo\n+from app.services import payout_batches as batch_service\n from app.services import payouts as payout_service\n from app.utils.idempotency import idempotent\n \n@@ -14,3 +17,19 @@\n         merchant_id=body.merchant_id, amount_cents=body.amount_cents, currency=body.currency\n     )\n     return PayoutResponse(**payout.as_dict())\n+\n+\n+@router.post(\"/batches\", status_code=202)\n+@idempotent\n+def submit_payout_batches(body: SubmitPayoutBatchesRequest) -> dict[str, list[str]]:\n+    batch_ids = batch_service.submit_pending_batches(\n+        merchant_id=body.merchant_id, currency=body.currency\n+    )\n+    return {\"batch_ids\": batch_ids}\n+\n+\n+@router.get(\"/batches/{batch_id}\", response_model=list[PayoutResponse])\n+def list_batch_payouts(batch_id: str) -> list[PayoutResponse]:\n+    with session_scope() as session:\n+        payouts = payout_repo.list_by_batch(session, batch_id)\n+    return [PayoutResponse(**p.as_dict()) for p in payouts]"
+    },
+    {
+      "path": "app/api/schemas.py",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 0,
+      "patch": "@@ -27,3 +27,8 @@\n     amount_cents: int\n     currency: str\n     status: str\n+\n+\n+class SubmitPayoutBatchesRequest(BaseModel):\n+    merchant_id: str\n+    currency: str = Field(min_length=3, max_length=3)"
+    }
+  ]
+}

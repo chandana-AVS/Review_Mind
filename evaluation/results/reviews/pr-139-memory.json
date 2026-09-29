@@ -1,0 +1,303 @@
+{
+  "pr": 139,
+  "title": "Card-network fallback",
+  "bank": "reviewmind-acme-payments",
+  "use_memory": true,
+  "created_at": "2026-09-29T14:54:06.616262+00:00",
+  "seconds": {
+    "recall_s": 1.2,
+    "reflect_s": 150.8,
+    "total_s": 152.0
+  },
+  "signals": {
+    "outbound_http": [
+      "app/clients/card_network.py:1",
+      "app/clients/card_network.py:17",
+      "app/services/network_health.py:1",
+      "app/services/network_health.py:17",
+      "tests/test_network_health.py:3",
+      "tests/test_network_health.py:12",
+      "tests/test_network_health.py:13"
+    ],
+    "money": [
+      "app/clients/card_network.py:16"
+    ],
+    "errors": [
+      "app/services/network_health.py:2",
+      "app/services/network_health.py:17",
+      "app/services/network_health.py:22",
+      "app/services/network_health.py:26"
+    ],
+    "logging": [
+      "app/services/network_health.py:18"
+    ]
+  },
+  "recall_probes": [
+    "outbound_http",
+    "retry",
+    "money",
+    "errors",
+    "logging",
+    "tests"
+  ],
+  "memories_recalled": 19,
+  "team_brief": [
+    {
+      "rule": "ADR-006: All outbound HTTP calls must use make_client() from app.clients.http, which provides 3s connect/10s read timeouts, 2 retries with jittered backoff, request-id propagation, and metrics; direct requests/httpx imports are not allowed",
+      "evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Services in app/services/ must raise domain errors from app.errors, not HTTPException; API layer maps domain errors to HTTP status codes; services are called from workers, jobs, CLI, and API where HTTP semantics don't always apply",
+      "evidence": [
+        {
+          "label": "M1",
+          "memory_id": "59738600-f211-4d29-bc51-937d41941f5d",
+          "type": "world",
+          "text": "Team convention requires domain errors instead of HTTPException when code is called from non-HTTP contexts like workers; alice enforced this when bob initially used HTTPException(422) in ledger service called from payout worker, bob changed to errors.Conflict | When: May 26, 2026 | Involving: alice (enforcer), bob (author) | Ledger service is called from payout worker not just HTTP endpoints; precedent in PR #117",
+          "document_id": "pr:payments-service:124",
+          "sources": [
+            "PR #124"
+          ]
+        },
+        {
+          "label": "M6",
+          "memory_id": "d38fde6a-ed87-4027-a3da-cf3efcd2f0c5",
+          "type": "world",
+          "text": "Acme Payments team requires services to raise `app.errors` domain errors instead of `HTTPException`; API layer maps domain errors to HTTP (pattern established in PR #117) | Involving: bob stated the rule to erin | Services are called from consumers and jobs, not just HTTP routes, where HTTPException is meaningless",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M12",
+          "memory_id": "060b26a6-10b1-41a3-9942-5eda5e006e76",
+          "type": "world",
+          "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts",
+          "document_id": "pr:payments-service:117",
+          "sources": [
+            "PR #117"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Structured logging uses constant snake_case event names with keyword arguments (not f-strings) to enable Datadog event grouping",
+      "evidence": [
+        {
+          "label": "M15",
+          "memory_id": "8ade212a-2091-4cb1-a36f-d45c6b73b146",
+          "type": "world",
+          "text": "Acme Payments team introduced structured logging via PR #114, implementing app.utils.logging module with structlog and redact() function for PII, piloted in refunds service to enable Datadog faceting on structured fields like charge_id and amount_cents instead of regex-parsing messages. | When: March 23-25, 2026 | Involving: carol (author), bob and alice (reviewers) | To enable structured logging that Datadog can facet on instead of regex-parsing log messages",
+          "document_id": "pr:payments-service:114",
+          "sources": [
+            "PR #114"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "title": "Direct requests.get() call violates ADR-006 HTTP client standard",
+      "file": "app/clients/card_network.py",
+      "line": 17,
+      "severity": "high",
+      "category": "architectural_violation",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "ADR-006 requires all outbound HTTP calls to use make_client() which provides standardized timeouts (3s connect, 10s read), 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics. Direct requests.get() bypasses this infrastructure.",
+      "recommendation": "Replace requests.get() with a client built using make_client('card_network_statuspage') and store it in module-level _statuspage_client, following the pattern of _client on line 8. Remove the requests import.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M4",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M5",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        },
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ],
+      "sources": [
+        "ADR-006",
+        "PR #123",
+        "PR #127"
+      ]
+    },
+    {
+      "title": "Service layer raises HTTPException instead of domain error",
+      "file": "app/services/network_health.py",
+      "line": 26,
+      "severity": "high",
+      "category": "architectural_violation",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "Services must raise domain errors from app.errors because they're called from multiple contexts (API, workers, jobs, CLI) where HTTP semantics don't apply. HTTPException is only valid in API handlers.",
+      "recommendation": "Define a domain error in app/errors.py (e.g., InvalidStatusIndicator or NetworkStatusUnavailable) and raise that instead. Let the API layer map it to HTTP 502 if needed.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M1",
+          "memory_id": "59738600-f211-4d29-bc51-937d41941f5d",
+          "type": "world",
+          "text": "Team convention requires domain errors instead of HTTPException when code is called from non-HTTP contexts like workers; alice enforced this when bob initially used HTTPException(422) in ledger service called from payout worker, bob changed to errors.Conflict | When: May 26, 2026 | Involving: alice (enforcer), bob (author) | Ledger service is called from payout worker not just HTTP endpoints; precedent in PR #117",
+          "document_id": "pr:payments-service:124",
+          "sources": [
+            "PR #124"
+          ]
+        },
+        {
+          "label": "M6",
+          "memory_id": "d38fde6a-ed87-4027-a3da-cf3efcd2f0c5",
+          "type": "world",
+          "text": "Acme Payments team requires services to raise `app.errors` domain errors instead of `HTTPException`; API layer maps domain errors to HTTP (pattern established in PR #117) | Involving: bob stated the rule to erin | Services are called from consumers and jobs, not just HTTP routes, where HTTPException is meaningless",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M12",
+          "memory_id": "060b26a6-10b1-41a3-9942-5eda5e006e76",
+          "type": "world",
+          "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts",
+          "document_id": "pr:payments-service:117",
+          "sources": [
+            "PR #117"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #117",
+        "PR #124",
+        "PR #127"
+      ]
+    },
+    {
+      "title": "Dangerous fallback: defaulting to 'up' status when status page is unreachable",
+      "file": "app/services/network_health.py",
+      "line": 23,
+      "severity": "high",
+      "category": "logic_error",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "Lines 22-23 catch all exceptions from status_page_indicator() and default indicator to 'none', which maps to 'up' status. If the status page is unreachable or returns malformed data, the system incorrectly reports the network as operational.",
+      "recommendation": "Either propagate the exception (safest: fail if both APIs are down) or return a distinct 'unknown' status that callers can handle appropriately. Don't claim 'up' when you cannot verify status.",
+      "confidence": 0.95,
+      "memory_evidence": [],
+      "sources": []
+    },
+    {
+      "title": "Bare except Exception hides unexpected errors",
+      "file": "app/services/network_health.py",
+      "line": 22,
+      "severity": "medium",
+      "category": "error_handling",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "Catching Exception is too broad and will silently swallow unexpected errors like KeyError (missing 'status' key), connection timeouts, DNS failures, etc. This makes debugging harder and masks real problems.",
+      "recommendation": "Catch specific exceptions (httpx.HTTPError, httpx.TimeoutException, KeyError) or remove the fallback entirely and let the exception propagate. At minimum, log the exception details before defaulting.",
+      "confidence": 0.9,
+      "memory_evidence": [],
+      "sources": []
+    },
+    {
+      "title": "requests library import suggests missing dependency declaration",
+      "file": "app/clients/card_network.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "dependency_management",
+      "classification": "TEAM_CONVENTION",
+      "basis": "hindsight_memory",
+      "explanation": "M7 notes that 'requests library not in declared dependencies' as part of enforcing ADR-006's make_client pattern. This import suggests either undeclared dependency or violation of the convention to use only httpx via make_client.",
+      "recommendation": "Remove requests import entirely and use make_client() which returns httpx.Client. If requests is not in requirements.txt, this code will fail in production.",
+      "confidence": 0.85,
+      "memory_evidence": [
+        {
+          "label": "M7",
+          "memory_id": "9c7d27bc-5380-4fd5-81bd-16a1aa65a686",
+          "type": "world",
+          "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase",
+          "document_id": "pr:payments-service:123",
+          "sources": [
+            "PR #123"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #123"
+      ]
+    },
+    {
+      "title": "Missing timeout on status API call (compare with status page)",
+      "file": "app/clients/card_network.py",
+      "line": 10,
+      "severity": "low",
+      "category": "consistency",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "The status_page_indicator() explicitly sets timeout=5 on line 17, but network_status() relies on _client's default timeouts. While make_client provides 3s connect/10s read, the inconsistency suggests different intent.",
+      "recommendation": "Document why different timeout strategies are appropriate for the two endpoints, or unify the approach. The API call uses make_client's retry logic while the page doesn't, which may be intentional.",
+      "confidence": 0.6,
+      "memory_evidence": [],
+      "sources": []
+    }
+  ],
+  "suppressed": [],
+  "dropped_unsupported": [],
+  "reflect_based_on": []
+}

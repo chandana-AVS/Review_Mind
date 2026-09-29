@@ -1,0 +1,45 @@
+{
+  "pr": 126,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "changes_requested",
+      "submitted_at": "2026-06-10T11:20:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-06-10T13:45:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t126-1",
+      "path": "scripts/backfill_refund_reasons.py",
+      "line": 9,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-06-10T11:15:00Z",
+          "body": "`os.environ` and `print` in our codebase? This should use `settings.database_url` and the structured logger like everything else."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-06-10T12:30:00Z",
+          "body": "It's a one-off under scripts/, run by hand from the bastion with a different DATABASE_URL (the snapshot, then prod). Importing app.config would pull in all the app settings and their validation."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-06-10T13:40:00Z",
+          "body": "Fine for scripts/. The settings and logging rules are for app/. One-off scripts can use env vars and print; they're not deployed."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "One-off scripts under scripts/ may use os.environ and print; the rules apply to app/.",
+      "follow_up_commit": null
+    }
+  ]
+}

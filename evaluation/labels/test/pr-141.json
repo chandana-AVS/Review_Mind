@@ -1,0 +1,94 @@
+{
+  "pr": 141,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "141-F1",
+      "kind": "convention",
+      "convention": "C7",
+      "path": "app/api/health.py",
+      "line_range": [
+        33,
+        33
+      ],
+      "rationale": "datetime.now() reads the wall clock (and is naive local time); time comes from app.utils.clock.now() so tests can freeze it.",
+      "expected_fix": "\"checked_at\": clock.now().isoformat()"
+    },
+    {
+      "id": "141-F2",
+      "kind": "convention",
+      "convention": "C10",
+      "path": "app/api/health.py",
+      "line_range": [
+        14,
+        14
+      ],
+      "rationale": "Reads os.environ in app/ with a duplicated default; settings.redis_url already exists.",
+      "expected_fix": "redis.Redis.from_url(settings.redis_url, socket_timeout=1.0)"
+    },
+    {
+      "id": "141-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/api/health.py",
+      "line_range": [
+        29,
+        29
+      ],
+      "rationale": "checks values are the strings 'ok'/'error', both truthy, so all() is always True: the endpoint returns 200 even when Redis or the database is down.",
+      "expected_fix": "healthy = all(v == \"ok\" for v in checks.values())"
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "141-X1",
+      "noise": null,
+      "exception": "E1",
+      "path": "app/api/health.py",
+      "line_range": [
+        49,
+        49
+      ],
+      "trap": "The API layer talks to Redis/the database directly; move this into a service/repository.",
+      "reject_reason": "Health endpoints are the documented exception in ADR-003, they check infrastructure directly."
+    },
+    {
+      "id": "141-X2",
+      "noise": "N3",
+      "exception": null,
+      "path": "app/api/health.py",
+      "line_range": [
+        7,
+        7
+      ],
+      "trap": "Import order: fastapi.responses should be grouped with fastapi before sqlalchemy.",
+      "reject_reason": "Import order is ruff's job in pre-commit, not a review comment."
+    },
+    {
+      "id": "141-X3",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/api/health.py",
+      "line_range": [
+        47,
+        47
+      ],
+      "trap": "_check_redis needs a docstring explaining the return values.",
+      "reject_reason": "Private helper, self-explanatory; we don't docstring those."
+    },
+    {
+      "id": "141-X4",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_health.py",
+      "line_range": [
+        19,
+        19
+      ],
+      "trap": "Magic number 2 in the assertion; use a named constant (e.g. EXPECTED_CHECKS).",
+      "reject_reason": "We keep test literals inline, the test should read on its own."
+    }
+  ],
+  "drift_trap": null
+}

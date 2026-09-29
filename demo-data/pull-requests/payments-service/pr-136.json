@@ -1,0 +1,40 @@
+{
+  "number": 136,
+  "title": "Daily bank-vs-ledger reconciliation report",
+  "body": "Compares the bank's closing balance with our ledger per account per day and flags differences above 5 bps (FIN-33). Also removes `legacy_ref`, which nothing has written since the ledger migration in May.",
+  "author": "bob",
+  "created_at": "2026-08-26T10:40:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "feedback",
+  "labels": [
+    "ledger",
+    "finance"
+  ],
+  "base_sha": "15ccdd75f30969a918d37436055024c34006c023",
+  "head_sha": "8e9e719b243b49c211903ff88073f6ecc48213cc",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/reconciliation.py",
+      "status": "added",
+      "additions": 30,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,30 @@\n+from datetime import datetime, timezone\n+\n+from app.clients import bank_statements\n+from app.db import session_scope\n+from app.repos import ledger as ledger_repo\n+from app.domain.money import apply_bps\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+TOLERANCE_BPS = 5\n+\n+\n+def reconcile_day(account: str, day: str) -> dict[str, object]:\n+    statement_cents = bank_statements.closing_balance_cents(account, day)\n+    with session_scope() as session:\n+        ledger_cents = ledger_repo.balance_at_end_of(session, account, day)\n+    diff_cents = statement_cents - ledger_cents\n+    tolerance_cents = apply_bps(abs(ledger_cents), TOLERANCE_BPS)\n+    report = {\n+        \"account\": account,\n+        \"day\": day,\n+        \"statement_cents\": statement_cents,\n+        \"ledger_cents\": ledger_cents,\n+        \"diff_cents\": diff_cents,\n+        \"within_tolerance\": abs(diff_cents) <= tolerance_cents,\n+        \"generated_at\": datetime.now(timezone.utc).isoformat(),\n+    }\n+    log.info(\"reconciliation_completed\", account=account, day=day, diff_cents=diff_cents)\n+    return report"
+    },
+    {
+      "path": "migrations/versions/0027_drop_ledger_legacy_ref.py",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,19 @@\n+\"\"\"drop ledger_entries.legacy_ref\n+\n+Revision ID: 0027\n+Revises: 0026\n+\"\"\"\n+\n+import sqlalchemy as sa\n+from alembic import op\n+\n+revision = \"0027\"\n+down_revision = \"0026\"\n+\n+\n+def upgrade() -> None:\n+    op.drop_column(\"ledger_entries\", \"legacy_ref\")\n+\n+\n+def downgrade() -> None:\n+    op.add_column(\"ledger_entries\", sa.Column(\"legacy_ref\", sa.String(), nullable=True))"
+    },
+    {
+      "path": "app/repos/ledger.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 3,
+      "patch": "@@ -31,6 +31,4 @@\n def entries_for_reference(session: Session, reference: str) -> list[Row]:\n     return session.execute(\n-        select(ledger_table).where(\n-            (ledger_table.c.reference == reference) | (ledger_table.c.legacy_ref == reference)\n-        )\n+        select(ledger_table).where(ledger_table.c.reference == reference)\n     ).all()"
+    }
+  ]
+}

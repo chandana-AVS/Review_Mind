@@ -1,0 +1,47 @@
+{
+  "number": 107,
+  "title": "Idempotency keys for money-moving endpoints (ADR-004)",
+  "body": "After the duplicate EUR 1,240 refund last month (the mobile app retried a timed-out refund request), this proposes ADR-004: every POST that creates or moves money requires an `Idempotency-Key` header.\n\n- `@idempotent` in `app/utils/idempotency.py` stores key + response in Redis for 24 h and\n  replays it on repeats. Missing key is a 400.\n- Applied to the refunds endpoint. Charges and captures follow once the mobile team ships the\n  header (their release is 02-09).",
+  "author": "alice",
+  "created_at": "2026-02-04T11:00:00Z",
+  "merged_at": "2026-02-06T15:35:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture",
+    "api"
+  ],
+  "base_sha": "6af20f27b3f9b07f291cb1e939d54afbb2f506ca",
+  "head_sha": "9154b864f49f119e3a6e8393379d97ce49404e0f",
+  "adr": "ADR-004",
+  "files": [
+    {
+      "path": "docs/adr/ADR-004-idempotency-keys.md",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,19 @@\n+# ADR-004: Idempotency keys for money-moving endpoints\n+\n+- Status: Accepted\n+- Date: 2026-02-04\n+- Deciders: alice, bob, carol\n+- PR: #107\n+\n+## Context\n+Mobile clients retry on timeouts. In January a retried `POST /refunds` produced a duplicate\n+refund of EUR 1,240 that ops had to claw back manually.\n+\n+## Decision\n+- Every `POST` endpoint that creates or moves money (charges, captures, refunds, payouts,\n+  transfers) is decorated with `@idempotent` from `app.utils.idempotency`.\n+- Clients send an `Idempotency-Key` header; the decorator stores the key + response for 24 h and\n+  replays the stored response on repeats. Missing key → 400.\n+\n+## Consequences\n+- Read-only endpoints and internal admin endpoints do not need it."
+    },
+    {
+      "path": "app/utils/idempotency.py",
+      "status": "added",
+      "additions": 25,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,25 @@\n+\"\"\"@idempotent decorator for money-moving POST endpoints (ADR-004).\"\"\"\n+\n+import functools\n+from collections.abc import Callable\n+from typing import Any\n+\n+from fastapi import HTTPException, Request\n+\n+from app.utils.idempotency_store import load_response, save_response\n+\n+\n+def idempotent(handler: Callable[..., Any]) -> Callable[..., Any]:\n+    @functools.wraps(handler)\n+    def wrapper(*args: Any, request: Request, **kwargs: Any) -> Any:\n+        key = request.headers.get(\"Idempotency-Key\")\n+        if not key:\n+            raise HTTPException(status_code=400, detail=\"Idempotency-Key header required\")\n+        stored = load_response(request.url.path, key)\n+        if stored is not None:\n+            return stored\n+        response = handler(*args, **kwargs)\n+        save_response(request.url.path, key, response)\n+        return response\n+\n+    return wrapper"
+    },
+    {
+      "path": "app/utils/idempotency_store.py",
+      "status": "added",
+      "additions": 21,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,21 @@\n+import json\n+from typing import Any\n+\n+import redis\n+from fastapi.encoders import jsonable_encoder\n+\n+from app.config import settings\n+\n+TTL_SECONDS = 24 * 60 * 60\n+\n+_redis = redis.Redis.from_url(settings.redis_url)\n+\n+\n+def load_response(path: str, key: str) -> Any | None:\n+    raw = _redis.get(f\"idem:{path}:{key}\")\n+    return json.loads(raw) if raw is not None else None\n+\n+\n+def save_response(path: str, key: str, response: Any) -> None:\n+    payload = json.dumps(jsonable_encoder(response))\n+    _redis.set(f\"idem:{path}:{key}\", payload, ex=TTL_SECONDS)"
+    },
+    {
+      "path": "app/api/refunds.py",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 0,
+      "patch": "@@ -2,9 +2,11 @@\n \n from app.api.schemas import CreateRefundRequest, RefundResponse\n from app.services import refunds as refund_service\n+from app.utils.idempotency import idempotent\n \n router = APIRouter(prefix=\"/charges\", tags=[\"refunds\"])\n \n \n @router.post(\"/{charge_id}/refunds\", response_model=RefundResponse, status_code=201)\n+@idempotent\n def create_refund(charge_id: str, body: CreateRefundRequest) -> RefundResponse:"
+    }
+  ]
+}

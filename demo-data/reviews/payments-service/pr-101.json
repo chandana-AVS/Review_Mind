@@ -1,0 +1,66 @@
+{
+  "pr": 101,
+  "reviews": [
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-01-06T13:05:00Z",
+      "body": "Big +1, the refunds handler was getting impossible to test."
+    },
+    {
+      "reviewer": "bob",
+      "state": "approved",
+      "submitted_at": "2026-01-07T10:22:00Z",
+      "body": "Agree with the direction. One question inline about ops endpoints, not blocking."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t101-1",
+      "path": "docs/adr/ADR-003-service-layer.md",
+      "line": 14,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-01-06T16:40:00Z",
+          "body": "Fully agree with this line, it's what went wrong in both December refund bugs. One question before it becomes a rule: we'll want a health endpoint at some point that does a `SELECT 1` against postgres and pings Redis. Wrapping that in a service feels like ceremony. Do we carve that out now or deal with it later?"
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-01-07T09:12:00Z",
+          "body": "Later. We don't have a health endpoint yet and I don't want the first version of the ADR to start with an exception. Default is no sessions in handlers, full stop. When someone actually builds the health check we'll look at it and amend the ADR if it makes sense."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-07T10:18:00Z",
+          "body": "Works for me."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    },
+    {
+      "id": "t101-2",
+      "path": "CONTRIBUTING.md",
+      "line": 8,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-01-06T12:58:00Z",
+          "body": "Tiny typo: seperate -> separate."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-01-06T13:30:00Z",
+          "body": "Fixed, thanks."
+        }
+      ],
+      "resolution": "noise",
+      "decided_by": null,
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

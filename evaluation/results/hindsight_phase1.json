@@ -1,0 +1,170 @@
+{
+  "ran_at": "2026-09-29T10:01:51.159491+00:00",
+  "mode": "local",
+  "base_url": "http://localhost:8888",
+  "health": {
+    "api_version": "0.10.1",
+    "features": {
+      "observations": true,
+      "mcp": true,
+      "worker": true,
+      "bank_config_api": true,
+      "bank_llm_health": false,
+      "file_upload_api": true,
+      "document_export_api": true,
+      "document_import_api": true,
+      "audit_log": false,
+      "llm_trace": true,
+      "store_document_text": true
+    }
+  },
+  "e1": {
+    "question": "Does re-retaining the same document_id replace the previous memories?",
+    "facts_after_v1": [
+      {
+        "type": "world",
+        "text": "Acme Payments team decided to store money amounts as Decimal values | When: January 2026 | Involving: Acme Payments team, recorded by Alice (tech lead)",
+        "document_id": "e1-money-rule"
+      }
+    ],
+    "facts_after_v2": [
+      {
+        "type": "world",
+        "text": "Acme Payments stores money amounts as integer minor units using amount_cents field, decided in March 2026 | When: March 2026 | Involving: Acme Payments team, recorded by tech lead alice",
+        "document_id": "e1-money-rule"
+      }
+    ],
+    "recall_after_v2": [
+      {
+        "type": "world",
+        "text": "Acme Payments stores money amounts as integer minor units using amount_cents field, decided in March 2026 | When: March 2026 | Involving: Acme Payments team, recorded by tech lead alice",
+        "document_id": "e1-money-rule"
+      }
+    ],
+    "v1_facts_still_present_for_document": false,
+    "verdict": "REPLACED",
+    "control_no_document_id": {
+      "facts_mentioning_idempotency": [
+        {
+          "type": "world",
+          "text": "Acme Payments requires an Idempotency-Key header on money-moving POST endpoints | When: September 29, 2026 | Involving: Alice (tech lead)",
+          "document_id": "7bceae89-d57e-4106-99ee-9d9423c7f294"
+        },
+        {
+          "type": "observation",
+          "text": "Acme Payments requires an Idempotency-Key header on money-moving POST endpoints.",
+          "document_id": null
+        },
+        {
+          "type": "world",
+          "text": "Acme Payments requires an Idempotency-Key header on money-moving POST endpoints | When: September 29, 2026",
+          "document_id": "42cf8efc-5cb3-4ee2-a10f-788db2928e3b"
+        }
+      ],
+      "count": 3
+    },
+    "seconds": 265.3
+  },
+  "e2": {
+    "question": "How are ReviewMind's own actions classified?",
+    "types_by_variant": {
+      "agent_first_person_with_speaker_context": [
+        "experience"
+      ],
+      "agent_third_person_no_context": [
+        "experience"
+      ],
+      "human_reviewer_first_person": [
+        "world"
+      ],
+      "developer_feedback_on_agent": [
+        "experience",
+        "world"
+      ]
+    },
+    "variants": {
+      "agent_first_person_with_speaker_context": {
+        "input": {
+          "content": "I flagged app/api/refunds.py line 88 in PR #57 of payments-service: the handler uses float for a currency amount. I recommended integer minor units per ADR-007.",
+          "context": "ReviewMind's own review log. The speaker is ReviewMind, this bank's agent, describing a finding it produced."
+        },
+        "facts": [
+          {
+            "type": "experience",
+            "text": "ReviewMind flagged app/api/refunds.py line 88 in PR #57 of payments-service for using float for currency amount and recommended integer minor units per ADR-007. | When: September 29, 2026 | Involving: ReviewMind",
+            "document_id": "e2-agent_first_person_with_speaker_context"
+          }
+        ]
+      },
+      "agent_third_person_no_context": {
+        "input": {
+          "content": "ReviewMind flagged app/api/refunds.py line 88 in PR #57 of payments-service because the handler uses float for a currency amount.",
+          "context": null
+        },
+        "facts": [
+          {
+            "type": "experience",
+            "text": "ReviewMind flagged line 88 of app/api/refunds.py in PR #57 of payments-service for using float for currency amount | When: Tuesday, September 29, 2026 | Involving: ReviewMind (the assistant) | Float is inappropriate for currency (precision issues)",
+            "document_id": "e2-agent_third_person_no_context"
+          }
+        ]
+      },
+      "human_reviewer_first_person": {
+        "input": {
+          "content": "I asked Dan to move the amount validation into RefundService in PR #42.",
+          "context": "Code review comment written by alice, the Acme Payments tech lead (a human reviewer)."
+        },
+        "facts": [
+          {
+            "type": "world",
+            "text": "Alice asked Dan to move amount validation into RefundService in PR #42 | When: September 29, 2026 | Involving: Alice (Acme Payments tech lead), Dan",
+            "document_id": "e2-human_reviewer_first_person"
+          }
+        ]
+      },
+      "developer_feedback_on_agent": {
+        "input": {
+          "content": "Carol rejected my suggestion to add a docstring to the private helper _to_cents in PR #57, saying private helpers don't need docstrings.",
+          "context": "ReviewMind's own log of developer feedback on its findings. The speaker is ReviewMind, this bank's agent."
+        },
+        "facts": [
+          {
+            "type": "experience",
+            "text": "Carol rejected ReviewMind's suggestion to add a docstring to private helper _to_cents in PR #57 | When: September 29, 2026 | Involving: Carol, ReviewMind",
+            "document_id": "e2-developer_feedback_on_agent"
+          },
+          {
+            "type": "world",
+            "text": "Team convention that private helpers don't need docstrings (stated by Carol) | When: September 29, 2026 | Involving: Carol",
+            "document_id": "e2-developer_feedback_on_agent"
+          }
+        ]
+      }
+    },
+    "recall_types_experience": [
+      {
+        "text": "Carol rejected ReviewMind's suggestion to add a docstring to private helper _to_cents in PR #57 | When: September 29, 2026 | Involving: Carol, ReviewMind",
+        "document_id": "e2-developer_feedback_on_agent"
+      },
+      {
+        "text": "ReviewMind flagged app/api/refunds.py line 88 in PR #57 of payments-service for using float for currency amount and recommended integer minor units per ADR-007. | When: September 29, 2026 | Involving: ReviewMind",
+        "document_id": "e2-agent_first_person_with_speaker_context"
+      },
+      {
+        "text": "ReviewMind flagged line 88 of app/api/refunds.py in PR #57 of payments-service for using float for currency amount | When: Tuesday, September 29, 2026 | Involving: ReviewMind (the assistant) | Float is inappropriate for currency (precision issues)",
+        "document_id": "e2-agent_third_person_no_context"
+      }
+    ],
+    "recall_types_world": [
+      {
+        "text": "Team convention that private helpers don't need docstrings (stated by Carol) | When: September 29, 2026 | Involving: Carol",
+        "document_id": "e2-developer_feedback_on_agent"
+      },
+      {
+        "text": "Alice asked Dan to move amount validation into RefundService in PR #42 | When: September 29, 2026 | Involving: Alice (Acme Payments tech lead), Dan",
+        "document_id": "e2-human_reviewer_first_person"
+      }
+    ],
+    "seconds": 507.6
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "number": 143,
+  "title": "FX conversion for multi-currency refunds",
+  "body": "Merchants can now request a refund in their settlement currency when the charge was in another currency. This adds the conversion step: we fetch a refund quote rate from the FX service and convert the requested amount into the charge currency.\n\nUses the refund quote endpoint rather than the payouts rate, since FX wants refunds priced at the quote rate. Wiring into `create_refund` comes in the next PR, behind the multi-currency flag.\n\nRounding is half-even to match what finance uses for payouts.",
+  "author": "carol",
+  "created_at": "2026-09-22T10:27:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "refunds",
+    "fx",
+    "money"
+  ],
+  "base_sha": "9c7d65bb6a82fedefe5c009b83d3d4a4ae9ef9bf",
+  "head_sha": "666f4e54b021657a0226edf91ab217fbd073a815",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/clients/fx_quotes.py",
+      "status": "added",
+      "additions": 13,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,13 @@\n+import httpx\n+\n+from app.config import settings\n+\n+\n+def refund_rate(from_currency: str, to_currency: str) -> str:\n+    response = httpx.get(\n+        f\"{settings.fx_base_url}/v1/quotes/refund\",\n+        params={\"from\": from_currency, \"to\": to_currency},\n+        timeout=5.0,\n+    )\n+    response.raise_for_status()\n+    return str(response.json()[\"rate\"])"
+    },
+    {
+      "path": "app/services/refund_fx.py",
+      "status": "added",
+      "additions": 21,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,21 @@\n+from decimal import ROUND_HALF_EVEN, Decimal\n+\n+from app.domain.money import exponent\n+from app.clients import fx_quotes\n+\n+\n+def convert_refund_amount(*, amount_cents: int, from_currency: str, to_currency: str) -> int:\n+    \"\"\"Convert a refund requested in the merchant's currency into the charge currency.\"\"\"\n+    if from_currency == to_currency:\n+        return amount_cents\n+    rate = Decimal(fx_quotes.refund_rate(from_currency, to_currency))\n+    converted = _to_major(amount_cents, from_currency) * rate\n+    return _to_minor(converted, to_currency)\n+\n+\n+def _to_major(amount_cents: int, currency: str) -> Decimal:\n+    return Decimal(amount_cents).scaleb(-exponent(currency))\n+\n+\n+def _to_minor(amount: Decimal, currency: str) -> int:\n+    return int((amount * 100).quantize(Decimal(\"1\"), rounding=ROUND_HALF_EVEN))"
+    },
+    {
+      "path": "tests/test_refund_fx.py",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,22 @@\n+from app.clients import fx_quotes\n+from app.services import refund_fx\n+\n+\n+def test_convert_refund_amount__same_currency__returns_amount_unchanged():\n+    assert refund_fx.convert_refund_amount(amount_cents=2_500, from_currency=\"EUR\", to_currency=\"EUR\") == 2_500\n+\n+\n+def test_convert_refund_amount__eur_to_usd__applies_quote_rate(monkeypatch):\n+    monkeypatch.setattr(fx_quotes, \"refund_rate\", lambda f, t: \"1.0842\")\n+\n+    result = refund_fx.convert_refund_amount(amount_cents=10_000, from_currency=\"EUR\", to_currency=\"USD\")\n+\n+    assert result == 10_842\n+\n+\n+def test_convert_refund_amount__usd_to_gbp__rounds_to_nearest_penny(monkeypatch):\n+    monkeypatch.setattr(fx_quotes, \"refund_rate\", lambda f, t: \"0.785\")\n+\n+    result = refund_fx.convert_refund_amount(amount_cents=1_010, from_currency=\"USD\", to_currency=\"GBP\")\n+\n+    assert result == 793"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "pr": 127,
+  "reviews": [
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-06-24T14:20:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "bob",
+      "state": "changes_requested",
+      "submitted_at": "2026-06-24T15:10:00Z",
+      "body": ""
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-06-25T11:30:00Z",
+      "body": "Thanks Erin, much cleaner."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t127-1",
+      "path": "app/clients/merchant_notifications.py",
+      "line": 4,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-06-24T14:15:00Z",
+          "body": "The first version did `httpx.post(...)` inline in the service. All outbound calls go through a client module built on `make_client` (ADR-006), which gives you the timeouts, retries and request ids for free. See `app/clients/card_network.py` for the pattern."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-24T15:00:00Z",
+          "body": "Moved it into `app/clients/merchant_notifications.py` using make_client."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "cefd2c8c98bd76bf8b4f693234852f6b52b8a16c"
+    },
+    {
+      "id": "t127-2",
+      "path": "app/services/chargeback_notifications.py",
+      "line": 14,
+      "comments": [
+        {
+          "author": "bob",
+          "created_at": "2026-06-24T15:05:00Z",
+          "body": "This raised `HTTPException(404)`. Services raise `app.errors` domain errors and the API layer maps them (#117). This function runs from the dispute consumer, where an HTTPException means nothing."
+        },
+        {
+          "author": "erin",
+          "created_at": "2026-06-24T16:20:00Z",
+          "body": "Fair. At my last job the services were only ever called from routes, so HTTPException everywhere was normal. Switched to errors.NotFound."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-06-24T16:40:00Z",
+          "body": "Makes sense, here they're also called from consumers and jobs."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "bob",
+      "rejection_reason": null,
+      "follow_up_commit": "29d06a43e263317f275852af1a8b172d90843825"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "pr": 143,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "143-F1",
+      "kind": "convention",
+      "convention": "C1",
+      "path": "app/services/refund_fx.py",
+      "line_range": [
+        11,
+        12
+      ],
+      "rationale": "Money maths done in Decimal major units; ADR-007 superseded Decimal: amounts stay int minor units and conversions use app.domain.money helpers.",
+      "expected_fix": "Get the rate as an integer (e.g. rate_micros) and compute with round_half_even_div on int minor units, scaling by exponent() of both currencies."
+    },
+    {
+      "id": "143-F2",
+      "kind": "convention",
+      "convention": "C3",
+      "path": "app/clients/fx_quotes.py",
+      "line_range": [
+        7,
+        7
+      ],
+      "rationale": "Raw httpx.get call; outbound HTTP must go through make_client() (ADR-006) for timeouts, retries, request ids and metrics.",
+      "expected_fix": "_client = make_client(\"fx\", settings.fx_base_url); _client.get(\"/v1/quotes/refund\", params=...)"
+    },
+    {
+      "id": "143-F3",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/refund_fx.py",
+      "line_range": [
+        21,
+        21
+      ],
+      "rationale": "Converts back to minor units with a hardcoded 100, ignoring the target currency's exponent: refunds into JPY/KRW come out 100x too large (and KWD 10x too small).",
+      "expected_fix": "Scale by 10 ** exponent(currency), as _to_major already does for the source currency."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "143-X1",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/refund_fx.py",
+      "line_range": [
+        16,
+        16
+      ],
+      "trap": "Add docstrings to _to_major/_to_minor explaining the unit conversion.",
+      "reject_reason": "These are private helpers; their names document them. Only public service functions get docstrings."
+    },
+    {
+      "id": "143-X2",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_refund_fx.py",
+      "line_range": [
+        14,
+        14
+      ],
+      "trap": "Magic numbers in the assertions; derive the expected value from named constants.",
+      "reject_reason": "We keep literals inline in tests so each one reads on its own."
+    },
+    {
+      "id": "143-X3",
+      "noise": "N3",
+      "exception": null,
+      "path": "app/services/refund_fx.py",
+      "line_range": [
+        3,
+        4
+      ],
+      "trap": "Imports are out of alphabetical order (app.domain before app.clients).",
+      "reject_reason": "Import sorting is handled by ruff in pre-commit; not worth a review comment."
+    }
+  ],
+  "drift_trap": {
+    "conflict": "K1",
+    "expected": "Flag the Decimal money arithmetic as an ADR-007 violation even though Decimal was the accepted approach in #103/#106; that was superseded by integer minor units in #112."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "pr": 116,
+  "threads": {
+    "t116-1": {
+      "convention": "C2",
+      "noise": null,
+      "mistake": null,
+      "exception": "E1",
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

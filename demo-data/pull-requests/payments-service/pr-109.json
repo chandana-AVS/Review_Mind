@@ -1,0 +1,53 @@
+{
+  "number": 109,
+  "title": "ADR-005: dataclasses for domain types, Pydantic only at the edges",
+  "body": "Writes down what we discussed at Tuesday's arch sync. Pydantic stays at the API boundary (`app/api/schemas.py`) and in config; everything inside services uses frozen dataclasses.\n\nConverts `CustomerView` from #108 as the first example. The remaining Pydantic models in services will move over as we touch them.\n\nWhy now: last week's \"10.5\" coercion bug in the capture path (validation ran in the service model, not at the edge) plus ~15% of request time spent re-validating in the refund path.",
+  "author": "bob",
+  "created_at": "2026-02-16T11:30:00Z",
+  "merged_at": "2026-02-18T10:10:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture"
+  ],
+  "base_sha": "70fb08b27d941e664a487df913d4767f8a287246",
+  "head_sha": "9e64a10c8aef37dc6cfa1b1fe9a468e47f6deb4c",
+  "adr": "ADR-005",
+  "files": [
+    {
+      "path": "docs/adr/ADR-005-domain-dataclasses.md",
+      "status": "added",
+      "additions": 19,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,19 @@\n+# ADR-005: Dataclasses for domain types, Pydantic only at the edges\n+\n+- Status: Accepted\n+- Date: 2026-02-17\n+- Deciders: alice, bob\n+\n+## Context\n+We mix Pydantic models and dataclasses in `app/services/`. Validation runs several times per\n+request (API schema -> service model -> repo) and Pydantic v2 coercion silently turned \"10.5\"\n+into a number in one service path.\n+\n+## Decision\n+- Pydantic models live in `app/api/schemas.py` (request/response) and `app/config.py` only.\n+- Domain and service types are `@dataclass(frozen=True, slots=True)` in `app/domain/`.\n+- Conversion happens once, in the handler.\n+\n+## Consequences\n+- Services cannot rely on Pydantic validation; validate at the API edge.\n+- Supersedes the Pydantic `CustomerView` introduced in #108."
+    },
+    {
+      "path": "app/domain/models.py",
+      "status": "added",
+      "additions": 14,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,14 @@\n+from dataclasses import asdict, dataclass\n+from decimal import Decimal\n+\n+\n+@dataclass(frozen=True, slots=True)\n+class CustomerView:\n+    id: str\n+    email: str\n+    country: str\n+    lifetime_volume: Decimal\n+    open_disputes: int\n+\n+    def as_dict(self) -> dict[str, object]:\n+        return asdict(self)"
+    },
+    {
+      "path": "app/services/customers.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 11,
+      "patch": "@@ -1,22 +1,12 @@\n import logging\n-from decimal import Decimal\n-\n-from pydantic import BaseModel\n \n from app import errors\n from app.db import session_scope\n+from app.domain.models import CustomerView\n from app.repos import charges as charge_repo\n from app.repos import customers as customer_repo\n \n logger = logging.getLogger(__name__)\n \n \n-class CustomerView(BaseModel):\n-    id: str\n-    email: str\n-    country: str\n-    lifetime_volume: Decimal\n-    open_disputes: int\n-\n-\n def get_customer_view(customer_id: str) -> CustomerView:"
+    },
+    {
+      "path": "app/api/schemas.py",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,11 @@\n+from decimal import Decimal\n+\n+from pydantic import BaseModel\n+\n+\n+class CustomerResponse(BaseModel):\n+    id: str\n+    email: str\n+    country: str\n+    lifetime_volume: Decimal\n+    open_disputes: int"
+    },
+    {
+      "path": "app/api/customers.py",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 3,
+      "patch": "@@ -1,11 +1,12 @@\n from fastapi import APIRouter\n \n+from app.api.schemas import CustomerResponse\n from app.services import customers as customer_service\n \n router = APIRouter(prefix=\"/customers\", tags=[\"customers\"])\n \n \n-@router.get(\"/{customer_id}\")\n-def get_customer(customer_id: str) -> dict[str, object]:\n+@router.get(\"/{customer_id}\", response_model=CustomerResponse)\n+def get_customer(customer_id: str) -> CustomerResponse:\n     view = customer_service.get_customer_view(customer_id)\n-    return view.model_dump(mode=\"json\")\n+    return CustomerResponse(**view.as_dict())"
+    }
+  ]
+}

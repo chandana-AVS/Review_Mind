@@ -1,0 +1,39 @@
+{
+  "number": 128,
+  "title": "Rename refunds.note to reason, step 1: add column and dual-write",
+  "body": "Expand step of the `note` -> `reason` rename, per ADR-008:\n1. (this PR) add `reason`, backfill from `note`, write both\n2. switch reads to `reason`\n3. drop `note`\n\nSteps 2 and 3 are separate PRs so every deploy is compatible with the previous version.",
+  "author": "dan",
+  "created_at": "2026-07-06T10:00:00Z",
+  "merged_at": "2026-07-08T09:30:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "database"
+  ],
+  "base_sha": "a607381bdd0b9cc75a58115f2474d7b95d6820cb",
+  "head_sha": "bf8bf58e7e0af100d73a23417fa30f9bd15f7ff0",
+  "adr": null,
+  "files": [
+    {
+      "path": "migrations/versions/0023_refunds_add_reason.py",
+      "status": "added",
+      "additions": 20,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,20 @@\n+\"\"\"refunds: add reason (expand step of note -> reason rename)\n+\n+Revision ID: 0023\n+Revises: 0022\n+\"\"\"\n+\n+import sqlalchemy as sa\n+from alembic import op\n+\n+revision = \"0023\"\n+down_revision = \"0022\"\n+\n+\n+def upgrade() -> None:\n+    op.add_column(\"refunds\", sa.Column(\"reason\", sa.String(), nullable=True))\n+    op.execute(\"UPDATE refunds SET reason = note WHERE reason IS NULL\")\n+\n+\n+def downgrade() -> None:\n+    op.drop_column(\"refunds\", \"reason\")"
+    },
+    {
+      "path": "app/repos/refunds.py",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 1,
+      "patch": "@@ -14,7 +14,8 @@\n             amount_cents=refund.amount_cents,\n             currency=refund.currency,\n             status=refund.status,\n-            note=refund.reason,\n+            note=refund.reason,  # TODO(#128 follow-up): stop writing once reads use `reason`\n+            reason=refund.reason,\n             created_at=refund.created_at,\n         )\n     )"
+    },
+    {
+      "path": "tests/test_refund_repo.py",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,11 @@\n+from app.repos import refunds as refund_repo\n+from tests.factories import make_refund\n+\n+\n+def test_insert__with_reason__writes_note_and_reason(db_session):\n+    refund_repo.insert(db_session, make_refund(reason=\"duplicate\"))\n+\n+    row = db_session.execute(\"SELECT note, reason FROM refunds\").one()\n+\n+    assert row.note == \"duplicate\"\n+    assert row.reason == \"duplicate\""
+    }
+  ]
+}

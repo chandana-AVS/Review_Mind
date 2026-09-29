@@ -1,0 +1,39 @@
+{
+  "number": 117,
+  "title": "Map domain errors to HTTP responses in one place",
+  "body": "Adds a single exception handler that maps `app.errors.DomainError` subclasses to status codes, and makes `capture_charge` validate status/amount with domain errors.\n\nBefore this, a mix of handlers caught errors and built responses by hand, and 409 vs 422 was inconsistent across endpoints (API-41).",
+  "author": "carol",
+  "created_at": "2026-04-08T09:30:00Z",
+  "merged_at": "2026-04-10T12:00:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "api"
+  ],
+  "base_sha": "f6eb63fd9c9c5505006bbc0445ec4293ec3e936a",
+  "head_sha": "40529a7a60227c1e8c1a0d985778b40e02bc270f",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/services/charges.py",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 0,
+      "patch": "@@ -13,5 +13,9 @@\n         charge = charge_repo.get(session, charge_id)\n         if charge is None:\n             raise errors.NotFound(f\"charge {charge_id} not found\")\n+        if charge.status != \"authorized\":\n+            raise errors.Conflict(f\"charge {charge_id} is {charge.status}, expected authorized\")\n+        if amount_cents > charge.amount_cents:\n+            raise errors.Conflict(\"capture amount exceeds authorized amount\")\n         charge_repo.mark_captured(session, charge.id, amount_cents, clock.now())\n     return charge"
+    },
+    {
+      "path": "app/api/errors.py",
+      "status": "added",
+      "additions": 23,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,23 @@\n+from fastapi import FastAPI, Request\n+from fastapi.responses import JSONResponse\n+\n+from app import errors\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+_STATUS = {\n+    errors.NotFound: 404,\n+    errors.Conflict: 409,\n+    errors.PaymentDeclined: 402,\n+    errors.RefundExceedsCapture: 422,\n+    errors.ProviderUnavailable: 503,\n+}\n+\n+\n+def register(app: FastAPI) -> None:\n+    @app.exception_handler(errors.DomainError)\n+    async def _domain_error(request: Request, exc: errors.DomainError) -> JSONResponse:\n+        status = _STATUS.get(type(exc), 400)\n+        log.warning(\"domain_error\", code=exc.code, path=request.url.path, status=status)\n+        return JSONResponse({\"error\": {\"code\": exc.code, \"message\": str(exc)}}, status_code=status)"
+    },
+    {
+      "path": "app/main.py",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 1,
+      "patch": "@@ -1,7 +1,8 @@\n from fastapi import FastAPI\n \n-from app.api import health, payouts, refunds\n+from app.api import errors, health, payouts, refunds\n \n app = FastAPI(title=\"payments-service\")\n+errors.register(app)\n for module in (health, refunds, payouts):\n     app.include_router(module.router)"
+    }
+  ]
+}

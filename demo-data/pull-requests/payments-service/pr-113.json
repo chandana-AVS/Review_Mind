@@ -1,0 +1,33 @@
+{
+  "number": 113,
+  "title": "Score charges with the fraud service before authorization",
+  "body": "Adds a small client for the internal fraud-scoring service (`/v2/score`) and calls it from `authorize_charge`. Charges scoring 80+ are declined with `PaymentDeclined(\"fraud_score_too_high\")`.\n\nThreshold agreed with the risk team (#risk-payments thread from 03-12). Next step is making it per-merchant.\n\nTesting: unit tests with the fraud client mocked; ran against fraud staging manually.",
+  "author": "dan",
+  "created_at": "2026-03-16T09:41:00Z",
+  "merged_at": "2026-03-18T11:05:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "integrations",
+    "risk"
+  ],
+  "base_sha": "1042c02f6c03f763096117bd817021427baafb60",
+  "head_sha": "8f339da728e704d0dfabf00138a22cdb85cda666",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/clients/fraud.py",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,22 @@\n+import httpx\n+\n+from app.config import settings\n+\n+\n+def score_charge(charge_id: str, amount_cents: int, currency: str, card_fingerprint: str) -> int:\n+    response = httpx.post(\n+        f\"{settings.fraud_base_url}/v2/score\",\n+        json={\n+            \"charge_id\": charge_id,\n+            \"amount_cents\": amount_cents,\n+            \"currency\": currency,\n+            \"card_fingerprint\": card_fingerprint,\n+        },\n+        timeout=5.0,\n+    )\n+    response.raise_for_status()\n+    return _risk_score(response.json())\n+\n+\n+def _risk_score(payload: dict[str, object]) -> int:\n+    return int(payload[\"score\"])"
+    },
+    {
+      "path": "app/services/charges.py",
+      "status": "modified",
+      "additions": 8,
+      "deletions": 0,
+      "patch": "@@ -1,8 +1,11 @@\n from app import errors\n+from app.clients import fraud\n from app.db import session_scope\n from app.domain.models import Charge\n from app.repos import charges as charge_repo\n from app.utils import clock\n+\n+FRAUD_BLOCK_THRESHOLD = 80\n \n \n def capture_charge(*, charge_id: str, amount_cents: int) -> Charge:\n@@ -17,5 +20,10 @@\n def authorize_charge(*, charge_id: str, card_fingerprint: str) -> Charge:\n     with session_scope() as session:\n         charge = charge_repo.get(session, charge_id)\n+        if charge is None:\n+            raise errors.NotFound(f\"charge {charge_id} not found\")\n+        score = fraud.score_charge(charge.id, charge.amount_cents, charge.currency, card_fingerprint)\n+        if score >= FRAUD_BLOCK_THRESHOLD:\n+            raise errors.PaymentDeclined(\"fraud_score_too_high\")\n         charge_repo.mark_authorized(session, charge.id)\n     return charge"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "pr": 134,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "134-F1",
+      "kind": "convention",
+      "convention": "C10",
+      "path": "app/services/payout_schedules.py",
+      "line_range": [
+        10,
+        10
+      ],
+      "rationale": "Reads os.environ directly in app/ instead of app.config.settings.",
+      "expected_fix": "Add payout_min_cents to Settings and use settings.payout_min_cents."
+    },
+    {
+      "id": "134-F2",
+      "kind": "convention",
+      "convention": "C8",
+      "path": "tests/test_payout_schedules.py",
+      "line_range": [
+        8,
+        8
+      ],
+      "rationale": "Test names don't follow test_<unit>__<scenario>__<expected>; model built inline instead of via factories.",
+      "expected_fix": "Rename to test_update_schedule__weekly__returns_schedule and use a factory."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "134-X1",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/services/payout_schedules.py",
+      "line_range": [
+        25,
+        25
+      ],
+      "trap": "Wrap the upsert in try/except, log the failure and re-raise.",
+      "reject_reason": "Domain errors and DB errors propagate to the middleware which logs them; no try/log/raise."
+    },
+    {
+      "id": "134-X2",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_payout_schedules.py",
+      "line_range": [
+        16,
+        16
+      ],
+      "trap": "Type-annotate the test function and fixture.",
+      "reject_reason": "Tests aren't typed here, mypy skips tests/."
+    }
+  ],
+  "drift_trap": null
+}

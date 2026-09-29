@@ -1,0 +1,72 @@
+{
+  "pr": 112,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-03-09T13:55:00Z",
+      "body": "Not convinced, see inline."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-03-10T10:30:00Z",
+      "body": "Approved, one request inline."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-03-10T11:00:00Z",
+      "body": "Finally. 🎉"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t112-1",
+      "path": "app/services/fees.py",
+      "line": 3,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-03-09T13:50:00Z",
+          "body": "Why not keep Decimal and just fix the serialisation? Decimal is the textbook answer for money. Integer cents gets awkward the moment you have fractional fees or FX."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-03-09T15:30:00Z",
+          "body": "The textbook answer assumes one system. We talk to Stripe and two banks, and they are all integer minor units. Every Decimal<->int conversion at the edge was a chance to round differently, and that's where the JPY/KWD mismatches came from. Fractional fees are basis points on an int with explicit half-even rounding (`apply_bps`), so the rounding happens in exactly one place. FX will do the same."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-03-10T10:20:00Z",
+          "body": "We discussed this at length at the sync. Going with integer minor units; it's in the ADR."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "Superseded by ADR-007: money is int minor units, fee maths via apply_bps with explicit rounding.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t112-2",
+      "path": "app/domain/money.py",
+      "line": 15,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-03-10T10:28:00Z",
+          "body": "Can we make `apply_bps` the only way to do percentage maths on money? I'd rather people didn't write `amount * 29 // 1000` inline and pick their own rounding."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-03-10T12:05:00Z",
+          "body": "Yes. Added a docstring and called it out in the ADR. Reviewers should push back on inline percentage maths."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "c65f986882b51ed7cc8b582bcdae2bc1f22df26a"
+    }
+  ]
+}

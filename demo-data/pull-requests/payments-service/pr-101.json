@@ -1,0 +1,46 @@
+{
+  "number": 101,
+  "title": "Introduce service layer (ADR-003)",
+  "body": "Proposes ADR-003: handlers in `app/api/` stop talking to the database. They validate, call one service function and map the result. Sessions come from the new `app.db.session_scope()`.\n\n- `app/services/charges.py` is the first service (create + capture), lifted out of\n  `app/api/charges.py`. Switching the handler over is a follow-up so this stays reviewable.\n- Adds a first CONTRIBUTING.md with the layout and test conventions we keep repeating in reviews.\n\nBackground: the two December refund bugs (duplicated query logic in two handlers).",
+  "author": "alice",
+  "created_at": "2026-01-06T09:30:00Z",
+  "merged_at": "2026-01-08T15:10:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture"
+  ],
+  "base_sha": "1658612648ec8335f9d05264611df7e5c8e34469",
+  "head_sha": "0546073857d7999c864032b2cbebe9412e467003",
+  "adr": "ADR-003",
+  "files": [
+    {
+      "path": "docs/adr/ADR-003-service-layer.md",
+      "status": "added",
+      "additions": 20,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,20 @@\n+# ADR-003: Service layer between API handlers and persistence\n+\n+- Status: Accepted\n+- Date: 2026-01-08\n+- Deciders: alice, bob\n+- PR: #101\n+\n+## Context\n+Handlers in `app/api/` grew to 150+ lines, mixing request parsing, SQL and provider calls. Two\n+refund bugs in December came from duplicated query logic in two handlers.\n+\n+## Decision\n+- `app/api/` handlers only: validate input, call one service function, map the result/errors.\n+- Handlers never receive or open a DB `Session`. Services get a session through\n+  `app.db.session_scope()`; queries live in `app/repos/`.\n+- Services are plain functions/classes with no FastAPI imports.\n+\n+## Consequences\n+- Services are unit-testable without the HTTP layer.\n+- Existing handlers move over one resource at a time; new endpoints start on the new layout."
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,16 @@\n+# Contributing to payments-service\n+\n+## Layout\n+- `app/api/` — FastAPI routers. Keep handlers thin: parse the request, call a service, map the\n+  result. Handlers must not open DB sessions or run queries; that belongs in `app/services/`\n+  and `app/repos/` (see ADR-003).\n+- `app/services/` — business logic.\n+- `app/repos/` — SQLAlchemy queries. Keep them seperate from business logic.\n+\n+## Tests\n+- Name tests `test_<unit>__<scenario>__<expected>`, e.g.\n+  `test_capture__already_captured__raises_conflict`.\n+- Build objects with the factories in `tests/factories.py` instead of constructing models inline.\n+\n+## Tooling\n+- `pre-commit install` — ruff lint + format run on every commit."
+    },
+    {
+      "path": "app/db.py",
+      "status": "modified",
+      "additions": 17,
+      "deletions": 1,
+      "patch": "@@ -1,7 +1,23 @@\n+from collections.abc import Iterator\n+from contextlib import contextmanager\n+\n from sqlalchemy import create_engine\n-from sqlalchemy.orm import sessionmaker\n+from sqlalchemy.orm import Session, sessionmaker\n \n from app.config import settings\n \n engine = create_engine(settings.database_url, pool_pre_ping=True)\n SessionLocal = sessionmaker(engine, expire_on_commit=False)\n+\n+\n+@contextmanager\n+def session_scope() -> Iterator[Session]:\n+    session = SessionLocal()\n+    try:\n+        yield session\n+        session.commit()\n+    except Exception:\n+        session.rollback()\n+        raise\n+    finally:\n+        session.close()"
+    },
+    {
+      "path": "app/services/charges.py",
+      "status": "added",
+      "additions": 36,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,36 @@\n+import logging\n+\n+from app import errors\n+from app.db import session_scope\n+from app.models import Charge\n+from app.repos import charges as charge_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+\n+logger = logging.getLogger(__name__)\n+\n+\n+def create_charge(*, merchant_id: str, amount: float, currency: str) -> Charge:\n+    with session_scope() as session:\n+        charge = Charge(\n+            id=new_id(\"ch\"),\n+            merchant_id=merchant_id,\n+            amount=amount,\n+            captured_amount=0.0,\n+            refunded_amount=0.0,\n+            currency=currency,\n+            status=\"authorized\",\n+            created_at=clock.now(),\n+        )\n+        charge_repo.insert(session, charge)\n+    logger.info(\"charge created id=%s merchant=%s\", charge.id, merchant_id)\n+    return charge\n+\n+\n+def capture_charge(*, charge_id: str) -> Charge:\n+    with session_scope() as session:\n+        charge = charge_repo.get(session, charge_id)\n+        if charge is None:\n+            raise errors.NotFound(f\"charge {charge_id} not found\")\n+        charge_repo.mark_captured(session, charge.id, charge.amount, clock.now())\n+    return charge"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "pr": 140,
+  "split": "test",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "140-F1",
+      "kind": "convention",
+      "convention": "C5",
+      "path": "app/services/saved_cards.py",
+      "line_range": [
+        34,
+        34
+      ],
+      "rationale": "Logs the customer's email in plain text; PII must be redacted (or left out) of logs.",
+      "expected_fix": "Drop the email or log customer_email=redact(customer.email); customer_id is usually enough."
+    },
+    {
+      "id": "140-F2",
+      "kind": "convention",
+      "convention": "C8",
+      "path": "tests/test_delete_saved_card.py",
+      "line_range": [
+        18,
+        18
+      ],
+      "rationale": "Test names don't follow test_<unit>__<scenario>__<expected>, and the SavedCard is built inline instead of via tests/factories.py.",
+      "expected_fix": "Rename to test_delete_saved_card__active_card__marks_deleted_and_deletes_token / test_delete_saved_card__unknown_card__raises_not_found; add make_saved_card to factories."
+    },
+    {
+      "id": "140-F3",
+      "kind": "convention",
+      "convention": "C10",
+      "path": "app/clients/vault.py",
+      "line_range": [
+        5,
+        5
+      ],
+      "rationale": "Reads os.environ inside app/; config goes through app.config.settings (the PAYMENTS_ prefix is already applied there).",
+      "expected_fix": "Add vault_url / vault_api_key to Settings and use settings.vault_url, settings.vault_api_key."
+    },
+    {
+      "id": "140-F4",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/saved_cards.py",
+      "line_range": [
+        30,
+        30
+      ],
+      "rationale": "No ownership check: customer_id is never compared to card.customer_id, so any customer can delete another customer's saved card by id (IDOR).",
+      "expected_fix": "Raise NotFound when card.customer_id != customer_id (or look the card up by both ids)."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "140-X1",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/saved_cards.py",
+      "line_range": [
+        37,
+        37
+      ],
+      "trap": "Add a docstring to _get_active_card documenting the NotFound behaviour.",
+      "reject_reason": "Private helper; the name and the three lines say it all. We only docstring public service functions."
+    },
+    {
+      "id": "140-X2",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_delete_saved_card.py",
+      "line_range": [
+        12,
+        12
+      ],
+      "trap": "The vault_calls fixture should be typed: (monkeypatch: pytest.MonkeyPatch) -> list[str].",
+      "reject_reason": "No type hints in tests, mypy excludes tests/."
+    },
+    {
+      "id": "140-X3",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/services/saved_cards.py",
+      "line_range": [
+        33,
+        33
+      ],
+      "trap": "Wrap the vault call in try/except and log the failure with the card id before re-raising.",
+      "reject_reason": "Errors propagate to the error middleware, which logs them; wrapping it just logs twice."
+    }
+  ],
+  "drift_trap": null
+}

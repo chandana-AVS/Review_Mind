@@ -1,0 +1,118 @@
+{
+  "pr": 137,
+  "split": "test",
+  "demo": true,
+  "should_flag": [
+    {
+      "id": "137-F1",
+      "kind": "convention",
+      "convention": "C4",
+      "path": "app/api/refunds.py",
+      "line_range": [
+        22,
+        23
+      ],
+      "rationale": "New money-moving POST (refund + fee debit) has no @idempotent; a client retry would refund and debit twice (ADR-004).",
+      "expected_fix": "Decorate refund_remaining_with_fee with @idempotent, like create_refund above it."
+    },
+    {
+      "id": "137-F2",
+      "kind": "convention",
+      "convention": "C3",
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        20,
+        20
+      ],
+      "rationale": "Builds its own httpx.Client instead of the shared client, losing retries, request-id propagation and http_call metrics (ADR-006).",
+      "expected_fix": "_bank = make_client(\"bank_transfers\", settings.bank_transfers_base_url)"
+    },
+    {
+      "id": "137-F3",
+      "kind": "convention",
+      "convention": "C7",
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        41,
+        41
+      ],
+      "rationale": "Reads the wall clock directly (and naive utcnow); tests can't freeze it via frozen_clock.",
+      "expected_fix": "Use clock.now().isoformat() from app.utils.clock."
+    },
+    {
+      "id": "137-F4",
+      "kind": "generic_bug",
+      "convention": null,
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        35,
+        35
+      ],
+      "rationale": "Fee is computed on the original charge amount, but the refund is only the remaining refundable amount; partially refunded charges are overcharged.",
+      "expected_fix": "Base the fee on the refunded amount: _processing_fee(refund.amount_cents) (i.e. charge.refundable_cents)."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "137-X1",
+      "noise": "N4",
+      "exception": null,
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        49,
+        49
+      ],
+      "trap": "Percentage fee on integers risks rounding errors; use Decimal for currency arithmetic.",
+      "reject_reason": "Money is int minor units since ADR-007, and apply_bps already rounds half-even. No Decimal."
+    },
+    {
+      "id": "137-X2",
+      "noise": "N1",
+      "exception": null,
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        48,
+        48
+      ],
+      "trap": "Add a docstring to _processing_fee explaining the fee rule and minimum.",
+      "reject_reason": "It's a private helper and the name says what it does; we only docstring public service functions."
+    },
+    {
+      "id": "137-X3",
+      "noise": "N2",
+      "exception": null,
+      "path": "tests/test_refund_fees.py",
+      "line_range": [
+        9,
+        9
+      ],
+      "trap": "Add type hints to the bank_debits fixture and its fake_post helper (monkeypatch: pytest.MonkeyPatch, -> list[dict]).",
+      "reject_reason": "We don't type tests, mypy excludes tests/ anyway."
+    },
+    {
+      "id": "137-X4",
+      "noise": "N6",
+      "exception": null,
+      "path": "tests/test_refund_fees.py",
+      "line_range": [
+        26,
+        26
+      ],
+      "trap": "Extract magic numbers like 150 and 10_000 into named test constants.",
+      "reject_reason": "Test literals stay inline on purpose so each test reads on its own."
+    },
+    {
+      "id": "137-X5",
+      "noise": "N5",
+      "exception": null,
+      "path": "app/services/refund_fees.py",
+      "line_range": [
+        36,
+        36
+      ],
+      "trap": "The bank debit call has no retry/backoff; wrap it in a retry for transient failures.",
+      "reject_reason": "The shared client already retries; stacking another retry layer is how we got INC-12."
+    }
+  ],
+  "drift_trap": null
+}

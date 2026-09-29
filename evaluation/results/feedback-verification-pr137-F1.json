@@ -1,0 +1,180 @@
+{
+  "document_id": "feedback:payments-service:pr137:F1",
+  "checks": {
+    "stored": true,
+    "stored_as_experience": true,
+    "provenance_complete": true,
+    "recalled_by_question": true,
+    "recalled_with_types_experience": true,
+    "baseline_bank_untouched": true
+  },
+  "stored": [
+    {
+      "type": "experience",
+      "text": "ReviewMind flagged direct httpx.Client use at refund_fees.py:20 in PR #137 (finding F1, citing ADR-006/PR #123/PR #127), but erin rejected the finding due to approved exception | When: September 29, 2026 | Involving: ReviewMind (self), erin (developer) | Learn not to repeat this suggestion for this specific integration",
+      "metadata": {
+        "file": "app/services/refund_fees.py",
+        "line": "20",
+        "repo": "payments-service",
+        "team": "acme-payments",
+        "reason": "Approved exception for this integration.",
+        "source": "review_feedback",
+        "category": "http_client",
+        "decision": "REJECTED",
+        "severity": "high",
+        "developer": "erin",
+        "pr_number": "137",
+        "finding_id": "F1",
+        "review_file": "evaluation/results/reviews/pr-137-memory.json",
+        "submitted_at": "2026-09-29T13:46:51+00:00",
+        "finding_basis": "hindsight_memory",
+        "finding_title": "HTTP client must use make_client() not direct httpx.Client instantiation",
+        "classification": "ARCHITECTURAL_DECISION",
+        "finding_sources": "ADR-006,PR #123,PR #127",
+        "review_created_at": "2026-09-29T13:20:55.648970+00:00"
+      },
+      "tags": [
+        "category:http_client",
+        "outcome:rejected",
+        "source:review_feedback",
+        "classification:architectural_decision",
+        "team:acme-payments",
+        "repo:payments-service",
+        "pr:137",
+        "finding:F1"
+      ]
+    },
+    {
+      "type": "world",
+      "text": "Team acme-payments has approved exception allowing direct httpx.Client instantiation in app/services/refund_fees.py for refund processing fee integration, despite ADR-006 requiring make_client() | When: September 29, 2026 | Involving: erin (developer, acme-payments team) | Approved exception for this specific integration",
+      "metadata": {
+        "file": "app/services/refund_fees.py",
+        "line": "20",
+        "repo": "payments-service",
+        "team": "acme-payments",
+        "reason": "Approved exception for this integration.",
+        "source": "review_feedback",
+        "category": "http_client",
+        "decision": "REJECTED",
+        "severity": "high",
+        "developer": "erin",
+        "pr_number": "137",
+        "finding_id": "F1",
+        "review_file": "evaluation/results/reviews/pr-137-memory.json",
+        "submitted_at": "2026-09-29T13:46:51+00:00",
+        "finding_basis": "hindsight_memory",
+        "finding_title": "HTTP client must use make_client() not direct httpx.Client instantiation",
+        "classification": "ARCHITECTURAL_DECISION",
+        "finding_sources": "ADR-006,PR #123,PR #127",
+        "review_created_at": "2026-09-29T13:20:55.648970+00:00"
+      },
+      "tags": [
+        "category:http_client",
+        "outcome:rejected",
+        "source:review_feedback",
+        "classification:architectural_decision",
+        "team:acme-payments",
+        "repo:payments-service",
+        "pr:137",
+        "finding:F1"
+      ]
+    }
+  ],
+  "recalled": [
+    {
+      "type": "experience",
+      "document_id": "feedback:payments-service:pr137:F1",
+      "text": "ReviewMind flagged direct httpx.Client use at refund_fees.py:20 in PR #137 (finding F1, citing ADR-006/PR #123/PR #127), but erin rejected the finding due to approved exception | When: September 29, 2026 | Involving: ReviewMind (self), erin (developer) | Learn not to repeat this suggestion for this specific integration"
+    },
+    {
+      "type": "world",
+      "document_id": "feedback:payments-service:pr137:F1",
+      "text": "Team acme-payments has approved exception allowing direct httpx.Client instantiation in app/services/refund_fees.py for refund processing fee integration, despite ADR-006 requiring make_client() | When: September 29, 2026 | Involving: erin (developer, acme-payments team) | Approved exception for this specific integration"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:127",
+      "text": "Acme Payments team requires services to raise `app.errors` domain errors instead of `HTTPException`; API layer maps domain errors to HTTP (pattern established in PR #117) | Involving: bob stated the rule to erin | Services are called from consumers and jobs, not just HTTP routes, where HTTPException is meaningless"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:124",
+      "text": "Team convention requires domain errors instead of HTTPException when code is called from non-HTTP contexts like workers; alice enforced this when bob initially used HTTPException(422) in ledger service called from payout worker, bob changed to errors.Conflict | When: May 26, 2026 | Involving: alice (enforcer), bob (author) | Ledger service is called from payout worker not just HTTP endpoints; precedent in PR #117"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:127",
+      "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:110",
+      "text": "Acme Payments team adopted ADR-006 (PR #110) requiring all outbound HTTP calls in payments-service to use shared HTTP client make_client with built-in timeouts, retry logic for connect errors and 502/503/504 statuses, and request-id headers | When: February 23-24, 2026 | Involving: alice (author), bob and carol (approved) | Response to February 11, 2026 card-network timeout incident"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:116",
+      "text": "alice added exception to ADR-003 on April 02, 2026: health and metrics endpoints can touch infrastructure directly to verify DB/Redis connectivity; business endpoints still require service layer | When: April 02, 2026 | Involving: alice | Operational endpoints need to check infrastructure directly; prevents repeated discussions"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:117",
+      "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:113",
+      "text": "Module-level httpx calls skipped timeouts, request-id propagation, and http_call metrics on February 11, 2026 in payments-service | When: February 11, 2026 | Involving: acme-payments team | Led to ADR-006 and make_client convention"
+    },
+    {
+      "type": "world",
+      "document_id": "adr:payments-service:006",
+      "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration"
+    },
+    {
+      "type": "observation",
+      "document_id": null,
+      "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed. Scope: all code. Strength: enforced. Rationale: ensures consistent timeouts, retries, and request ID handling. Confirmed June 24, 2026, when alice required erin to move an inline `httpx.post()` call to `app/clients/merchant_notifications.py` using `make_client` in PR #127; erin applied the change."
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:125",
+      "text": "Team convention per ADR-004: client-facing POST endpoints must use @idempotent decorator | When: June 03, 2026 | Involving: bob (enforced), erin (applied) | Prevents double submissions from checkout creating duplicate cards"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:126",
+      "text": "Acme Payments team convention: one-off scripts under scripts/ directory may use os.environ and print; settings and structured logging rules only apply to app/ directory, not to manually-run scripts that aren't deployed | When: June 10, 2026 | Involving: alice (stated and enforced the rule), frank (reviewer who questioned), carol (PR author who explained rationale) | One-off scripts run from bastion with different DATABASE_URL; importing app.config would unnecessarily pull in all app settings and validation"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:102",
+      "text": "Bob decided to defer HTTP library standardization for Acme Payments until Q1 2026 when fraud scoring and FX clients will be implemented, keeping `requests` for simple GET calls now and planning to design a shared HTTP client with timeouts, retries and metrics once requirements are known from multiple use cases | When: January 12, 2026 | Involving: Bob (decision maker), Dan (PR author), Carol (raised standardization question) | Want to understand requirements from multiple use cases before standardizing"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:109",
+      "text": "Team adopted ADR-005: Pydantic at API boundary only (app/api/schemas.py and config); domain/service types use frozen dataclasses with slots=True | When: Merged February 18, 2026 at 10:10 UTC | Involving: bob (author), alice (decision maker, approved), carol (approved), frank (requested changes but overruled) | To prevent validation bugs in service layer and improve performance"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:117",
+      "text": "PR #117 by carol merged: centralized mapping of domain errors to HTTP responses in single exception handler (app/api/errors.py), eliminating inconsistent 409 vs 422 status code responses across endpoints that previously were built by hand in mixed handlers. | When: April 08-10, 2026 | Involving: carol (author) | Addresses API-41; improves consistency in error handling across the API"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:113",
+      "text": "Acme Payments team enforces that nothing in app/ constructs its own httpx client or imports requests; must use make_client() which provides timeouts, request-id propagation, and http_call metrics (per ADR-006) | When: Established per ADR-006, enforced March 16, 2026 | Involving: alice (enforcer), dan (applied) | Ensures consistent HTTP client behavior with proper instrumentation"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:123",
+      "text": "Acme Payments team enforces convention that all HTTP calls in payments-service must use module's _client instead of direct requests calls; requests library not in declared dependencies (documented in ADR-006, also enforced in PR #113) | Maintain consistent HTTP client usage across codebase"
+    },
+    {
+      "type": "world",
+      "document_id": "pr:payments-service:116",
+      "text": "ADR-003 in payments-service requires business endpoints to use service layer, not touch infrastructure (database, Redis) directly | Involving: acme-payments team"
+    }
+  ]
+}

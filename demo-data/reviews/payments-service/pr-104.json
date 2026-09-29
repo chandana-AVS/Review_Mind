@@ -1,0 +1,77 @@
+{
+  "pr": 104,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-01-20T13:10:00Z",
+      "body": "Looks reasonable. One doc comment."
+    },
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-01-20T15:25:00Z",
+      "body": "Logic is fine, but the handler is doing the service's job. See inline."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-01-21T17:48:00Z",
+      "body": "Thanks Bob."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t104-1",
+      "path": "app/api/refunds.py",
+      "line": 13,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-01-20T15:20:00Z",
+          "body": "This is the pattern ADR-003 is meant to stop: the handler opens the session, runs the charge lookup and passes the session into the service. Please move the lookup and the session into `refund_service.create_refund(charge_id=..., amount=..., reason=...)` and have the handler just call it. Missing charge should be `errors.NotFound` from the service; the handler shouldn't need `charge_repo` at all."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-20T16:45:00Z",
+          "body": "I passed the session in so the lookup, the insert and the `refunded_amount` update share one transaction. But the service can do all three inside its own `session_scope()`, so there's no reason for the handler to own it. Moving it."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-21T11:02:00Z",
+          "body": "Done. Handler is now four lines; the service owns the session and raises NotFound."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-01-21T17:45:00Z",
+          "body": "Perfect, that's the shape I want the rest of the handlers to end up in."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "4bf73038bfff6703f541639b957c06307a4ab869"
+    },
+    {
+      "id": "t104-2",
+      "path": "app/services/refunds.py",
+      "line": 35,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-01-20T13:08:00Z",
+          "body": "Add a docstring to `_refundable`, e.g. whether it accounts for pending refunds. Future readers won't know."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-01-20T16:52:00Z",
+          "body": "Same answer as on #102: private helpers are documented by their names, and we only write docstrings for the public service functions. It's one subtraction; if the semantics change (say pending refunds get excluded) the name and the tests change with it."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "Private helpers are documented by their names; we only document public service functions.",
+      "follow_up_commit": null
+    }
+  ]
+}

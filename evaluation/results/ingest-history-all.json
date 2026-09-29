@@ -1,0 +1,507 @@
+{
+  "ran_at": "2026-09-29T10:58:24.708907+00:00",
+  "bank": "reviewmind-acme-payments",
+  "mode": "local",
+  "requested": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "retained": [
+    101,
+    102,
+    103,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "failed": [],
+  "skipped_unchanged": [
+    104,
+    112,
+    113
+  ],
+  "concurrency_limit": 5,
+  "max_concurrency_observed": 5,
+  "wall_seconds": 781.0,
+  "runs": [
+    {
+      "pr": 101,
+      "document_id": "pr:payments-service:101",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 86.6,
+      "seconds": 86.6,
+      "content_chars": 1891,
+      "threads": 1
+    },
+    {
+      "pr": 102,
+      "document_id": "pr:payments-service:102",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 109.6,
+      "seconds": 109.6,
+      "content_chars": 2624,
+      "threads": 2
+    },
+    {
+      "pr": 103,
+      "document_id": "pr:payments-service:103",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 242.6,
+      "seconds": 242.6,
+      "content_chars": 2011,
+      "threads": 1
+    },
+    {
+      "pr": 105,
+      "document_id": "pr:payments-service:105",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 73.6,
+      "seconds": 73.6,
+      "content_chars": 2395,
+      "threads": 2
+    },
+    {
+      "pr": 106,
+      "document_id": "pr:payments-service:106",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 111.9,
+      "seconds": 111.9,
+      "content_chars": 2419,
+      "threads": 2
+    },
+    {
+      "pr": 107,
+      "document_id": "pr:payments-service:107",
+      "ok": true,
+      "error": null,
+      "start_s": 73.6,
+      "end_s": 149.4,
+      "seconds": 75.9,
+      "content_chars": 2581,
+      "threads": 2
+    },
+    {
+      "pr": 108,
+      "document_id": "pr:payments-service:108",
+      "ok": true,
+      "error": null,
+      "start_s": 86.6,
+      "end_s": 169.5,
+      "seconds": 82.9,
+      "content_chars": 1317,
+      "threads": 1
+    },
+    {
+      "pr": 109,
+      "document_id": "pr:payments-service:109",
+      "ok": true,
+      "error": null,
+      "start_s": 109.6,
+      "end_s": 351.8,
+      "seconds": 242.2,
+      "content_chars": 2318,
+      "threads": 1
+    },
+    {
+      "pr": 110,
+      "document_id": "pr:payments-service:110",
+      "ok": true,
+      "error": null,
+      "start_s": 111.9,
+      "end_s": 322.0,
+      "seconds": 210.1,
+      "content_chars": 2221,
+      "threads": 2
+    },
+    {
+      "pr": 111,
+      "document_id": "pr:payments-service:111",
+      "ok": true,
+      "error": null,
+      "start_s": 149.4,
+      "end_s": 263.7,
+      "seconds": 114.2,
+      "content_chars": 1645,
+      "threads": 2
+    },
+    {
+      "pr": 114,
+      "document_id": "pr:payments-service:114",
+      "ok": true,
+      "error": null,
+      "start_s": 169.5,
+      "end_s": 267.1,
+      "seconds": 97.5,
+      "content_chars": 1389,
+      "threads": 1
+    },
+    {
+      "pr": 115,
+      "document_id": "pr:payments-service:115",
+      "ok": true,
+      "error": null,
+      "start_s": 242.6,
+      "end_s": 343.8,
+      "seconds": 101.2,
+      "content_chars": 1737,
+      "threads": 2
+    },
+    {
+      "pr": 116,
+      "document_id": "pr:payments-service:116",
+      "ok": true,
+      "error": null,
+      "start_s": 263.7,
+      "end_s": 502.9,
+      "seconds": 239.2,
+      "content_chars": 1337,
+      "threads": 1
+    },
+    {
+      "pr": 117,
+      "document_id": "pr:payments-service:117",
+      "ok": true,
+      "error": null,
+      "start_s": 267.1,
+      "end_s": 453.7,
+      "seconds": 186.6,
+      "content_chars": 1999,
+      "threads": 2
+    },
+    {
+      "pr": 118,
+      "document_id": "pr:payments-service:118",
+      "ok": true,
+      "error": null,
+      "start_s": 322.0,
+      "end_s": 416.7,
+      "seconds": 94.6,
+      "content_chars": 2091,
+      "threads": 2
+    },
+    {
+      "pr": 119,
+      "document_id": "pr:payments-service:119",
+      "ok": true,
+      "error": null,
+      "start_s": 343.8,
+      "end_s": 400.6,
+      "seconds": 56.8,
+      "content_chars": 1485,
+      "threads": 1
+    },
+    {
+      "pr": 120,
+      "document_id": "pr:payments-service:120",
+      "ok": true,
+      "error": null,
+      "start_s": 351.8,
+      "end_s": 557.7,
+      "seconds": 205.9,
+      "content_chars": 1903,
+      "threads": 2
+    },
+    {
+      "pr": 121,
+      "document_id": "pr:payments-service:121",
+      "ok": true,
+      "error": null,
+      "start_s": 400.6,
+      "end_s": 634.9,
+      "seconds": 234.3,
+      "content_chars": 1805,
+      "threads": 2
+    },
+    {
+      "pr": 122,
+      "document_id": "pr:payments-service:122",
+      "ok": true,
+      "error": null,
+      "start_s": 416.7,
+      "end_s": 504.0,
+      "seconds": 87.3,
+      "content_chars": 2186,
+      "threads": 3
+    },
+    {
+      "pr": 123,
+      "document_id": "pr:payments-service:123",
+      "ok": true,
+      "error": null,
+      "start_s": 453.7,
+      "end_s": 534.9,
+      "seconds": 81.3,
+      "content_chars": 2006,
+      "threads": 2
+    },
+    {
+      "pr": 124,
+      "document_id": "pr:payments-service:124",
+      "ok": true,
+      "error": null,
+      "start_s": 502.9,
+      "end_s": 598.3,
+      "seconds": 95.5,
+      "content_chars": 2317,
+      "threads": 3
+    },
+    {
+      "pr": 125,
+      "document_id": "pr:payments-service:125",
+      "ok": true,
+      "error": null,
+      "start_s": 504.0,
+      "end_s": 746.0,
+      "seconds": 242.0,
+      "content_chars": 3360,
+      "threads": 5
+    },
+    {
+      "pr": 126,
+      "document_id": "pr:payments-service:126",
+      "ok": true,
+      "error": null,
+      "start_s": 534.9,
+      "end_s": 612.9,
+      "seconds": 78.0,
+      "content_chars": 1403,
+      "threads": 1
+    },
+    {
+      "pr": 127,
+      "document_id": "pr:payments-service:127",
+      "ok": true,
+      "error": null,
+      "start_s": 557.7,
+      "end_s": 674.6,
+      "seconds": 116.9,
+      "content_chars": 1945,
+      "threads": 2
+    },
+    {
+      "pr": 128,
+      "document_id": "pr:payments-service:128",
+      "ok": true,
+      "error": null,
+      "start_s": 598.3,
+      "end_s": 781.0,
+      "seconds": 182.7,
+      "content_chars": 1804,
+      "threads": 2
+    },
+    {
+      "pr": 129,
+      "document_id": "pr:payments-service:129",
+      "ok": true,
+      "error": null,
+      "start_s": 612.9,
+      "end_s": 690.3,
+      "seconds": 77.4,
+      "content_chars": 2301,
+      "threads": 3
+    },
+    {
+      "pr": 130,
+      "document_id": "pr:payments-service:130",
+      "ok": true,
+      "error": null,
+      "start_s": 634.9,
+      "end_s": 736.2,
+      "seconds": 101.2,
+      "content_chars": 1883,
+      "threads": 2
+    }
+  ],
+  "auto_consolidation_enabled": false,
+  "memory": {
+    "total_memory_units": 122,
+    "types_total": {
+      "world": 122
+    },
+    "by_document": {
+      "pr:payments-service:101": {
+        "world": 4
+      },
+      "pr:payments-service:102": {
+        "world": 2
+      },
+      "pr:payments-service:103": {
+        "world": 2
+      },
+      "pr:payments-service:104": {
+        "world": 6
+      },
+      "pr:payments-service:105": {
+        "world": 6
+      },
+      "pr:payments-service:106": {
+        "world": 4
+      },
+      "pr:payments-service:107": {
+        "world": 4
+      },
+      "pr:payments-service:108": {
+        "world": 3
+      },
+      "pr:payments-service:109": {
+        "world": 5
+      },
+      "pr:payments-service:110": {
+        "world": 4
+      },
+      "pr:payments-service:111": {
+        "world": 5
+      },
+      "pr:payments-service:112": {
+        "world": 3
+      },
+      "pr:payments-service:113": {
+        "world": 5
+      },
+      "pr:payments-service:114": {
+        "world": 3
+      },
+      "pr:payments-service:115": {
+        "world": 2
+      },
+      "pr:payments-service:116": {
+        "world": 3
+      },
+      "pr:payments-service:117": {
+        "world": 5
+      },
+      "pr:payments-service:118": {
+        "world": 4
+      },
+      "pr:payments-service:119": {
+        "world": 4
+      },
+      "pr:payments-service:120": {
+        "world": 2
+      },
+      "pr:payments-service:121": {
+        "world": 5
+      },
+      "pr:payments-service:122": {
+        "world": 4
+      },
+      "pr:payments-service:123": {
+        "world": 5
+      },
+      "pr:payments-service:124": {
+        "world": 4
+      },
+      "pr:payments-service:125": {
+        "world": 8
+      },
+      "pr:payments-service:126": {
+        "world": 1
+      },
+      "pr:payments-service:127": {
+        "world": 4
+      },
+      "pr:payments-service:128": {
+        "world": 4
+      },
+      "pr:payments-service:129": {
+        "world": 7
+      },
+      "pr:payments-service:130": {
+        "world": 4
+      }
+    },
+    "observations": 0,
+    "provenance_sample": {
+      "text": "erin suggested using Decimal for FX conversion intermediate results in payments-service PR #130, but bob rejected it citing ADR-007's mandate for int minor units with integer micro-rates | When: July 22, 2026 | Involving: erin (reviewer), bob (author, decided rejection) | ADR-007 already addresses precision with int-based approach; team moved away from Decimal to avoid rounding mismatches",
+      "type": "world",
+      "document_id": "pr:payments-service:130",
+      "tags": [
+        "source:pr_history",
+        "outcome:rejected",
+        "author:bob",
+        "pr:130",
+        "team:acme-payments",
+        "area:services",
+        "outcome:applied",
+        "area:api",
+        "repo:payments-service"
+      ],
+      "metadata": {
+        "adr": "",
+        "repo": "payments-service",
+        "team": "acme-payments",
+        "split": "history",
+        "state": "merged",
+        "author": "bob",
+        "source": "pr_history",
+        "outcomes": "t130-1=applied,t130-2=rejected",
+        "pr_title": "Payouts in a different currency than the balance",
+        "merged_at": "2026-07-24T12:30:00Z",
+        "pr_number": "130",
+        "created_at": "2026-07-22T10:15:00Z",
+        "thread_ids": "t130-1,t130-2",
+        "applied_count": "1",
+        "rejected_count": "1"
+      }
+    }
+  }
+}

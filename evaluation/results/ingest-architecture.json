@@ -1,0 +1,80 @@
+{
+  "ran_at": "2026-09-29T11:05:55.933038+00:00",
+  "bank": "reviewmind-acme-payments",
+  "documents_found": [
+    "adr:payments-service:003",
+    "adr:payments-service:004",
+    "adr:payments-service:005",
+    "adr:payments-service:006",
+    "adr:payments-service:007",
+    "adr:payments-service:008",
+    "contributing:payments-service"
+  ],
+  "skipped_unchanged": [],
+  "wall_seconds": 228.4,
+  "runs": [
+    {
+      "document_id": "adr:payments-service:003",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 66.8,
+      "seconds": 66.8,
+      "chars": 956
+    },
+    {
+      "document_id": "adr:payments-service:006",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 110.0,
+      "seconds": 110.0,
+      "chars": 1007
+    },
+    {
+      "document_id": "adr:payments-service:005",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 112.2,
+      "seconds": 112.2,
+      "chars": 863
+    },
+    {
+      "document_id": "adr:payments-service:004",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 114.8,
+      "seconds": 114.8,
+      "chars": 900
+    },
+    {
+      "document_id": "adr:payments-service:008",
+      "ok": true,
+      "error": null,
+      "start_s": 66.8,
+      "end_s": 148.1,
+      "seconds": 81.3,
+      "chars": 775
+    },
+    {
+      "document_id": "contributing:payments-service",
+      "ok": true,
+      "error": null,
+      "start_s": 110.0,
+      "end_s": 163.9,
+      "seconds": 53.9,
+      "chars": 1102
+    },
+    {
+      "document_id": "adr:payments-service:007",
+      "ok": true,
+      "error": null,
+      "start_s": 0.0,
+      "end_s": 228.3,
+      "seconds": 228.3,
+      "chars": 1150
+    }
+  ]
+}

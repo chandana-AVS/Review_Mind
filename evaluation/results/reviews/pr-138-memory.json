@@ -1,0 +1,318 @@
+{
+  "pr": 138,
+  "title": "Payout batching",
+  "bank": "reviewmind-acme-payments",
+  "use_memory": true,
+  "created_at": "2026-09-29T14:56:55.098601+00:00",
+  "seconds": {
+    "recall_s": 1.9,
+    "reflect_s": 321.8,
+    "total_s": 323.7
+  },
+  "signals": {
+    "db_session": [
+      "app/services/payout_batches.py:4",
+      "app/services/payout_batches.py:17",
+      "app/services/payout_batches.py:24",
+      "app/api/payouts.py:4",
+      "app/api/payouts.py:33"
+    ],
+    "money": [
+      "app/services/payout_batches.py:15",
+      "app/services/payout_batches.py:18",
+      "app/api/payouts.py:26",
+      "app/api/schemas.py:34"
+    ],
+    "logging": [
+      "app/services/payout_batches.py:28"
+    ],
+    "private_helper": [
+      "app/services/payout_batches.py:32"
+    ],
+    "endpoint": [
+      "app/api/payouts.py:22"
+    ]
+  },
+  "recall_probes": [
+    "money",
+    "logging",
+    "db_session",
+    "endpoint",
+    "private_helper"
+  ],
+  "memories_recalled": 21,
+  "team_brief": [
+    {
+      "rule": "ADR-003: API handlers must be thin - validate input, call one service function, map results; no DB sessions or queries in handlers (services own session via session_scope)",
+      "evidence": [
+        {
+          "label": "M4",
+          "memory_id": "de2e47ed-5e72-4025-af7e-0153bfad810c",
+          "type": "world",
+          "text": "Team convention per ADR-003 and CONTRIBUTING: API handlers must be thin - call one service function, service owns session and queries | When: June 03, 2026 | Involving: bob (enforced), erin (applied) | Makes logic reusable from jobs",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        },
+        {
+          "label": "M12",
+          "memory_id": "060b26a6-10b1-41a3-9942-5eda5e006e76",
+          "type": "world",
+          "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts",
+          "document_id": "pr:payments-service:117",
+          "sources": [
+            "PR #117"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-004: All money-moving POST endpoints require @idempotent decorator",
+      "evidence": [
+        {
+          "label": "M14",
+          "memory_id": "ea68cb77-a86b-4f22-abe1-6b723949a3ee",
+          "type": "world",
+          "text": "alice enforced team convention ADR-004 requiring @idempotent decorator on money-moving endpoints in payments-service | When: July 22, 2026 | Involving: alice (reviewer), bob (author) | Money-moving endpoint POST /payouts/convert was missing required decorator",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        },
+        {
+          "label": "M18",
+          "memory_id": "8324cb1c-7a48-4195-ac21-e6f4ab3bd39e",
+          "type": "world",
+          "text": "bob added @idempotent decorator to POST /payouts/convert endpoint after alice's review | When: July 22, 2026 | Involving: bob (author), alice (reviewer, decided acceptance) | To comply with ADR-004 requirement for money-moving endpoints",
+          "document_id": "pr:payments-service:130",
+          "sources": [
+            "PR #130"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Structured logging: use constant snake_case event names with keyword arguments, not f-strings (enables Datadog event grouping)",
+      "evidence": [
+        {
+          "label": "M7",
+          "memory_id": "8ade212a-2091-4cb1-a36f-d45c6b73b146",
+          "type": "world",
+          "text": "Acme Payments team introduced structured logging via PR #114, implementing app.utils.logging module with structlog and redact() function for PII, piloted in refunds service to enable Datadog faceting on structured fields like charge_id and amount_cents instead of regex-parsing messages. | When: March 23-25, 2026 | Involving: carol (author), bob and alice (reviewers) | To enable structured logging that Datadog can facet on instead of regex-parsing log messages",
+          "document_id": "pr:payments-service:114",
+          "sources": [
+            "PR #114"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "ADR-006: All outbound HTTP must use make_client for consistent timeouts, retries, request IDs",
+      "evidence": [
+        {
+          "label": "M8",
+          "memory_id": "8941df1f-995d-4883-b193-59b37512c73d",
+          "type": "world",
+          "text": "Acme Payments team enforces ADR-006: all outbound calls must go through a client module built on `make_client`, which provides timeouts, retries, and request IDs; inline HTTP calls are not allowed | Involving: alice stated the rule to erin | Ensures consistent timeouts, retries, and request ID handling",
+          "document_id": "pr:payments-service:127",
+          "sources": [
+            "PR #127"
+          ]
+        },
+        {
+          "label": "M13",
+          "memory_id": "b4a08987-6034-4594-a0db-abf671e05852",
+          "type": "world",
+          "text": "Acme Payments accepted ADR-006 requiring all outbound HTTP in payments-service to use app.clients.http.make_client(service_name), which returns httpx.Client with 3s connect/10s read timeouts, 2 retries with jittered backoff on connect errors and 502/503/504, request-id propagation, and metrics | When: February 23, 2026 | Involving: alice, bob (deciders) | To prevent timeout-related outages and standardize HTTP client configuration",
+          "document_id": "adr:payments-service:006",
+          "sources": [
+            "ADR-006"
+          ]
+        }
+      ]
+    },
+    {
+      "rule": "Private helper functions (underscore-prefixed) don't require docstrings; name and implementation are sufficient documentation",
+      "evidence": [
+        {
+          "label": "M6",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M19",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M20",
+          "memory_id": "056e37cf-7dd0-48e3-a5fc-1a64fcf9fac4",
+          "type": "world",
+          "text": "frank suggested adding docstring to _to_code private helper in PR #129 thread t129-2; dan rejected citing team convention that private helpers don't need docstrings; erin accepted the rejection | When: 2026-07-14 | Involving: frank (suggested), dan (rejected), erin (author) | Team convention is that name and body document private helpers",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "title": "Incomplete batch handling loses trailing payouts",
+      "file": "app/services/payout_batches.py",
+      "line": 33,
+      "severity": "high",
+      "category": "logic-error",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "The _chunk function uses integer division (batch_count = len(payouts) // size) which drops the remainder. With 350 payouts and size 200, only 1 batch is created, losing 150 payouts.",
+      "recommendation": "Use math.ceil or handle remainder explicitly: return [payouts[i*size:(i+1)*size] for i in range((len(payouts) + size - 1) // size)]",
+      "confidence": 1.0,
+      "memory_evidence": [],
+      "sources": []
+    },
+    {
+      "title": "F-string in log statement violates structured logging convention",
+      "file": "app/services/payout_batches.py",
+      "line": 28,
+      "severity": "medium",
+      "category": "logging",
+      "classification": "TEAM_CONVENTION",
+      "basis": "hindsight_memory",
+      "explanation": "Team requires constant snake_case event names with keyword arguments for Datadog event grouping. F-strings prevent log grouping and require regex-parsing.",
+      "recommendation": "Change to: log.info(\"payout_batches_submitted\", batch_count=len(batch_ids), merchant_id=merchant_id, currency=currency)",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M7",
+          "memory_id": "8ade212a-2091-4cb1-a36f-d45c6b73b146",
+          "type": "world",
+          "text": "Acme Payments team introduced structured logging via PR #114, implementing app.utils.logging module with structlog and redact() function for PII, piloted in refunds service to enable Datadog faceting on structured fields like charge_id and amount_cents instead of regex-parsing messages. | When: March 23-25, 2026 | Involving: carol (author), bob and alice (reviewers) | To enable structured logging that Datadog can facet on instead of regex-parsing log messages",
+          "document_id": "pr:payments-service:114",
+          "sources": [
+            "PR #114"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #114"
+      ]
+    },
+    {
+      "title": "API handler directly queries database instead of calling service",
+      "file": "app/api/payouts.py",
+      "line": 33,
+      "severity": "medium",
+      "category": "architecture",
+      "classification": "ARCHITECTURAL_DECISION",
+      "basis": "hindsight_memory",
+      "explanation": "ADR-003 requires handlers to be thin: validate input, call one service function, map results. Services own sessions and queries to enable reuse from jobs/workers/CLI.",
+      "recommendation": "Move the session_scope and payout_repo.list_by_batch call into a new service function in app/services/payout_batches.py (e.g., get_batch_payouts), then call it from the handler.",
+      "confidence": 1.0,
+      "memory_evidence": [
+        {
+          "label": "M4",
+          "memory_id": "de2e47ed-5e72-4025-af7e-0153bfad810c",
+          "type": "world",
+          "text": "Team convention per ADR-003 and CONTRIBUTING: API handlers must be thin - call one service function, service owns session and queries | When: June 03, 2026 | Involving: bob (enforced), erin (applied) | Makes logic reusable from jobs",
+          "document_id": "pr:payments-service:125",
+          "sources": [
+            "PR #125"
+          ]
+        },
+        {
+          "label": "M12",
+          "memory_id": "060b26a6-10b1-41a3-9942-5eda5e006e76",
+          "type": "world",
+          "text": "Acme Payments team enforces architectural rule: services layer must not use HTTPException or HTTP-specific constructs, because services are called from multiple contexts (payout worker, CLI, API) where HTTP semantics don't apply. Services should raise domain errors and let API layer handlers map to HTTP status codes. | When: April 08, 2026 | Involving: alice (reviewer) stated and enforced the principle | Maintains separation of concerns and allows services to be reused in non-HTTP contexts",
+          "document_id": "pr:payments-service:117",
+          "sources": [
+            "PR #117"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #117",
+        "PR #125"
+      ]
+    },
+    {
+      "title": "Potential DetachedInstanceError from closed session",
+      "file": "app/services/payout_batches.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "database",
+      "classification": "NEW",
+      "basis": "generic",
+      "explanation": "The pending list contains Payout objects from a session that closes at line 18. If bank_transfers.submit_batch (line 23) accesses lazy-loaded attributes, SQLAlchemy will raise DetachedInstanceError.",
+      "recommendation": "Either eagerly load all needed attributes in the query, or restructure to keep the session open across the entire function. Alternatively, extract only needed data into plain dicts before the session closes.",
+      "confidence": 0.85,
+      "memory_evidence": [],
+      "sources": []
+    }
+  ],
+  "suppressed": [
+    {
+      "suggestion": "Add docstring to _chunk helper function",
+      "file": "app/services/payout_batches.py",
+      "line": 32,
+      "reason": "Team convention: private helpers (underscore-prefixed) are self-documenting through name and implementation; docstrings not required.",
+      "evidence": [
+        "M6",
+        "M19",
+        "M20"
+      ],
+      "classification": "PREVIOUSLY_REJECTED",
+      "memory_evidence": [
+        {
+          "label": "M6",
+          "memory_id": "4869736a-a892-46eb-80d3-296d5e218a8c",
+          "type": "world",
+          "text": "Acme Payments team convention: only public service functions require docstrings; private helper functions (prefixed with underscore) are considered self-documenting through their names and type hints | When: May 13, 2026 | Involving: frank (reviewer), carol (author) | Private helpers are self-documenting by name; team documents public service functions, not internal implementation details",
+          "document_id": "pr:payments-service:122",
+          "sources": [
+            "PR #122"
+          ]
+        },
+        {
+          "label": "M19",
+          "memory_id": "2741e97a-9715-4299-813a-051ccef0ce6c",
+          "type": "world",
+          "text": "Acme Payments team doesn't require docstrings for underscore-prefixed private helpers; name and body are considered sufficient documentation (established in PRs #104, #122, and #129) | When: 2026-07-14 | Involving: dan (stated convention), frank (questioned), erin (accepted) | Simple private helpers are self-documenting through name and implementation",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        },
+        {
+          "label": "M20",
+          "memory_id": "056e37cf-7dd0-48e3-a5fc-1a64fcf9fac4",
+          "type": "world",
+          "text": "frank suggested adding docstring to _to_code private helper in PR #129 thread t129-2; dan rejected citing team convention that private helpers don't need docstrings; erin accepted the rejection | When: 2026-07-14 | Involving: frank (suggested), dan (rejected), erin (author) | Team convention is that name and body document private helpers",
+          "document_id": "pr:payments-service:129",
+          "sources": [
+            "PR #129"
+          ]
+        }
+      ],
+      "sources": [
+        "PR #122",
+        "PR #129"
+      ]
+    }
+  ],
+  "dropped_unsupported": [],
+  "reflect_based_on": []
+}

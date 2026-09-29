@@ -1,0 +1,41 @@
+{
+  "number": 121,
+  "title": "ADR-008: expand/contract migrations (INC-19 follow-up)",
+  "body": "Post-mortem action items from INC-19:\n1. Restore `charges.legacy_status` (still read by the reconciliation job; the drop was premature anyway)\n2. ADR-008: migrations must be compatible with both old and new code; drops go in a separate PR\n3. CONTRIBUTING section so new folks see it\n\nPost-mortem doc: INC-19 in the incidents folder.",
+  "author": "bob",
+  "created_at": "2026-05-08T10:30:00Z",
+  "merged_at": "2026-05-12T14:00:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture",
+    "database",
+    "incident"
+  ],
+  "base_sha": "ee82f82c2fe5218a63f4e423ecb4be179f622d7f",
+  "head_sha": "e12b3725ab525f6001a48adb8a375b4ed5da5bae",
+  "adr": "ADR-008",
+  "files": [
+    {
+      "path": "docs/adr/ADR-008-expand-contract-migrations.md",
+      "status": "added",
+      "additions": 15,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,15 @@\n+# ADR-008: Expand/contract database migrations\n+\n+- Status: Accepted\n+- Date: 2026-05-12\n+- Deciders: alice, bob\n+\n+## Context\n+INC-19 (2026-05-07): a hotfix dropped `charges.legacy_status` in the same deploy as the code that\n+stopped reading it. During the rolling deploy old pods crashed for 6 minutes.\n+\n+## Decision\n+- A migration must work with both the currently deployed code and the new code.\n+- Renames and drops happen in steps: expand (add) -> write both -> backfill -> switch reads ->\n+  contract (drop) in a separate, later PR.\n+- A PR that drops or renames a column must not change application code in the same PR."
+    },
+    {
+      "path": "migrations/versions/0019_restore_legacy_status.py",
+      "status": "added",
+      "additions": 20,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,20 @@\n+\"\"\"restore charges.legacy_status (INC-19 follow-up)\n+\n+Revision ID: 0019\n+Revises: 0018\n+\"\"\"\n+\n+import sqlalchemy as sa\n+from alembic import op\n+\n+revision = \"0019\"\n+down_revision = \"0018\"\n+\n+\n+def upgrade() -> None:\n+    op.add_column(\"charges\", sa.Column(\"legacy_status\", sa.String(), nullable=True))\n+    op.execute(\"UPDATE charges SET legacy_status = status WHERE legacy_status IS NULL\")\n+\n+\n+def downgrade() -> None:\n+    op.drop_column(\"charges\", \"legacy_status\")"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 0,
+      "patch": "@@ -21,2 +21,7 @@\n+## Database migrations\n+- Migrations must be backwards compatible with the currently deployed code. Use expand/contract:\n+  add the new column, ship code that writes both, backfill, then drop the old column in a\n+  **separate** PR (see ADR-008).\n+\n ## Tooling\n - `pre-commit install` — ruff lint + format run on every commit."
+    }
+  ]
+}

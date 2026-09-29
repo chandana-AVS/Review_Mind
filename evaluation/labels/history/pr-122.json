@@ -1,0 +1,32 @@
+{
+  "pr": 122,
+  "threads": {
+    "t122-1": {
+      "convention": "C10",
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t122-2": {
+      "convention": "C2",
+      "noise": null,
+      "mistake": "M4",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    },
+    "t122-3": {
+      "convention": null,
+      "noise": "N1",
+      "mistake": null,
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

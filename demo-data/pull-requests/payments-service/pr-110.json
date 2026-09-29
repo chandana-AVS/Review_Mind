@@ -1,0 +1,47 @@
+{
+  "number": 110,
+  "title": "ADR-006: shared HTTP client for all outbound calls",
+  "body": "Follow-up to the 02-11 card-network incident (worker threads hung for 9 min on a `requests.get` with no timeout).\n\n- adds `app/clients/http.py` with `make_client(service_name, base_url)`: timeouts, 2 retries on\n  connect errors / 502 / 503 / 504, request-id header\n- migrates `card_network` off `requests` and drops `requests` from dependencies\n- ADR-006 documents the rule\n\nFraud and FX clients don't exist yet; they should be built on this from day one.",
+  "author": "alice",
+  "created_at": "2026-02-23T09:15:00Z",
+  "merged_at": "2026-02-24T15:30:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "architecture",
+    "integrations"
+  ],
+  "base_sha": "488c5e657aa94bca85b096a544bc638366c83493",
+  "head_sha": "4cd16d29fb3480cb8c3f1bdafa23eef6efa48659",
+  "adr": "ADR-006",
+  "files": [
+    {
+      "path": "docs/adr/ADR-006-shared-http-client.md",
+      "status": "added",
+      "additions": 21,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,21 @@\n+# ADR-006: One shared HTTP client for all outbound calls\n+\n+- Status: Accepted\n+- Date: 2026-02-23\n+- Deciders: alice, bob\n+\n+## Context\n+Outbound calls use a mix of `requests` and `httpx` with inconsistent, often missing, timeouts.\n+The card-network outage on 2026-02-11 hung worker threads for 9 minutes because a\n+`requests.get` had no timeout.\n+\n+## Decision\n+- All outbound HTTP goes through `app.clients.http.make_client(service_name, base_url)`:\n+  3 s connect / 10 s read timeouts, 2 retries with jittered backoff on connect errors and\n+  502/503/504, request-id propagation and metrics.\n+- Do not import `requests` or construct `httpx.Client` / call `httpx.get|post` anywhere else.\n+- Do not add extra retry loops around client calls.\n+\n+## Consequences\n+- `requests` removed from dependencies.\n+- Provider SDKs with their own transport (Stripe) are exempt."
+    },
+    {
+      "path": "app/clients/http.py",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,37 @@\n+\"\"\"The only way to make outbound HTTP calls (ADR-006).\"\"\"\n+\n+import logging\n+\n+import httpx\n+\n+from app.utils.request_context import current_request_id\n+\n+logger = logging.getLogger(__name__)\n+\n+_RETRY_STATUSES = {502, 503, 504}\n+\n+\n+class _RetryTransport(httpx.HTTPTransport):\n+    \"\"\"Connect-level retries plus up to `retries` retries on 502/503/504.\"\"\"\n+\n+    def __init__(self, retries: int = 2) -> None:\n+        super().__init__(retries=retries)\n+        self._retries = retries\n+\n+    def handle_request(self, request: httpx.Request) -> httpx.Response:\n+        response = super().handle_request(request)\n+        attempt = 0\n+        while response.status_code in _RETRY_STATUSES and attempt < self._retries:\n+            attempt += 1\n+            response.close()\n+            response = super().handle_request(request)\n+        return response\n+\n+\n+def make_client(service_name: str, base_url: str) -> httpx.Client:\n+    return httpx.Client(\n+        base_url=base_url,\n+        timeout=httpx.Timeout(10.0, connect=3.0),\n+        transport=_RetryTransport(),\n+        headers={\"X-Request-Id\": current_request_id(), \"User-Agent\": f\"payments/{service_name}\"},\n+    )"
+    },
+    {
+      "path": "app/clients/card_network.py",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 3,
+      "patch": "@@ -1,9 +1,10 @@\n-import requests\n+from app.clients.http import make_client\n+from app.config import settings\n \n-from app.config import settings\n+_client = make_client(\"card_network\", settings.card_network_base_url)\n \n \n def network_status(network: str) -> str:\n-    response = requests.get(f\"{settings.card_network_base_url}/v1/networks/{network}/status\")\n+    response = _client.get(f\"/v1/networks/{network}/status\")\n     response.raise_for_status()\n     return _parse_status(response.json())"
+    },
+    {
+      "path": "pyproject.toml",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -5,4 +5,4 @@\n dependencies = [\n   \"fastapi>=0.115\", \"sqlalchemy>=2.0\", \"alembic>=1.13\", \"httpx>=0.27\",\n-  \"requests>=2.31\", \"pydantic-settings>=2.4\",\n+  \"pydantic-settings>=2.4\",\n ]"
+    }
+  ]
+}

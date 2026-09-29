@@ -1,0 +1,66 @@
+{
+  "pr": 108,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-02-10T14:40:00Z",
+      "body": "Suggestion inline, otherwise fine."
+    },
+    {
+      "reviewer": "carol",
+      "state": "approved",
+      "submitted_at": "2026-02-11T09:15:00Z",
+      "body": "LGTM"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t108-1",
+      "path": "app/services/customers.py",
+      "line": 14,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-02-10T14:32:00Z",
+          "body": "Returning a bare dict from the service loses all structure. Make `CustomerView` a Pydantic model: you get validation, `model_dump(mode=\"json\")` handles the Decimal for you, and the handler becomes a one-liner. This is what we do in the platform services."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-02-10T16:02:00Z",
+          "body": "Makes sense, the Decimal serialisation was annoying me anyway. Changed."
+        },
+        {
+          "author": "carol",
+          "created_at": "2026-02-11T09:12:00Z",
+          "body": "Fine by me for now. We don't really have a rule about where Pydantic lives yet, might be worth one."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "frank",
+      "rejection_reason": null,
+      "follow_up_commit": "17c3d80b58fded0230e136aa9c77fdd9d3bc2256"
+    },
+    {
+      "id": "t108-2",
+      "path": "app/api/customers.py",
+      "line": 11,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-02-11T09:14:00Z",
+          "body": "nit: `mode=\"json\"` is doing the heavy lifting here, maybe a comment? Not blocking."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-02-11T10:30:00Z",
+          "body": "I think it's clear enough, leaving it."
+        }
+      ],
+      "resolution": "noise",
+      "decided_by": null,
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

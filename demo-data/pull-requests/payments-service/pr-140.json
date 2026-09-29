@@ -1,0 +1,47 @@
+{
+  "number": 140,
+  "title": "Delete saved card",
+  "body": "Customers can now remove a saved card from their wallet: `DELETE /saved-cards/{card_id}`.\n\nThe card row is soft-deleted (we keep it for dispute lookups) and the token is deleted from the vault straight away, per the PCI scope review.\n\nNew small vault client; the URL and API key come from the vault team's env vars (`PAYMENTS_VAULT_URL`, `PAYMENTS_VAULT_API_KEY`), already set in staging and prod.",
+  "author": "erin",
+  "created_at": "2026-09-10T16:20:00Z",
+  "merged_at": null,
+  "state": "open",
+  "split": "test",
+  "labels": [
+    "saved-cards",
+    "pci"
+  ],
+  "base_sha": "11c3afad9bb05f6ade3daeffe62659a7f12e8b97",
+  "head_sha": "ecd562cb72157802bbacb22b1965417cee9835dd",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/clients/vault.py",
+      "status": "added",
+      "additions": 13,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,13 @@\n+import os\n+\n+from app.clients.http import make_client\n+\n+_client = make_client(\"vault\", os.environ[\"PAYMENTS_VAULT_URL\"])\n+\n+\n+def delete_token(token: str) -> None:\n+    response = _client.delete(\n+        f\"/v1/tokens/{token}\",\n+        headers={\"Authorization\": f\"Bearer {os.environ['PAYMENTS_VAULT_API_KEY']}\"},\n+    )\n+    response.raise_for_status()"
+    },
+    {
+      "path": "app/services/saved_cards.py",
+      "status": "modified",
+      "additions": 23,
+      "deletions": 0,
+      "patch": "@@ -1,6 +1,12 @@\n+from sqlalchemy.orm import Session\n+\n+from app import errors\n+from app.clients import vault\n from app.db import session_scope\n from app.domain.models import SavedCard\n+from app.repos import customers as customer_repo\n from app.repos import saved_cards as saved_card_repo\n+from app.utils import clock\n from app.utils.logging import get_logger\n \n log = get_logger(__name__)\n@@ -16,3 +22,20 @@\n def list_saved_cards(*, customer_id: str) -> list[SavedCard]:\n     with session_scope() as session:\n         return saved_card_repo.list_for_customer(session, customer_id)\n+\n+\n+def delete_saved_card(*, customer_id: str, card_id: str) -> None:\n+    \"\"\"Remove a saved card and delete its token from the vault.\"\"\"\n+    with session_scope() as session:\n+        card = _get_active_card(session, card_id)\n+        saved_card_repo.mark_deleted(session, card.id, clock.now())\n+        customer = customer_repo.get(session, card.customer_id)\n+    vault.delete_token(card.vault_token)\n+    log.info(\"saved_card_deleted\", card_id=card.id, customer_email=customer.email)\n+\n+\n+def _get_active_card(session: Session, card_id: str) -> SavedCard:\n+    card = saved_card_repo.get(session, card_id)\n+    if card is None or card.deleted_at is not None:\n+        raise errors.NotFound(f\"saved card {card_id} not found\")\n+    return card"
+    },
+    {
+      "path": "app/api/saved_cards.py",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 0,
+      "patch": "@@ -25,3 +25,8 @@\n def list_saved_cards(customer_id: str = Header(alias=\"X-Customer-Id\")) -> list[SavedCardResponse]:\n     cards = saved_card_service.list_saved_cards(customer_id=customer_id)\n     return [SavedCardResponse(**c.as_dict()) for c in cards]\n+\n+\n+@router.delete(\"/{card_id}\", status_code=204)\n+def delete_saved_card(card_id: str, customer_id: str = Header(alias=\"X-Customer-Id\")) -> None:\n+    saved_card_service.delete_saved_card(customer_id=customer_id, card_id=card_id)"
+    },
+    {
+      "path": "tests/test_delete_saved_card.py",
+      "status": "added",
+      "additions": 32,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,32 @@\n+from datetime import UTC, datetime\n+\n+import pytest\n+\n+from app import errors\n+from app.clients import vault\n+from app.domain.models import SavedCard\n+from app.services import saved_cards\n+\n+\n+@pytest.fixture\n+def vault_calls(monkeypatch):\n+    calls = []\n+    monkeypatch.setattr(vault, \"delete_token\", calls.append)\n+    return calls\n+\n+\n+def test_delete_saved_card(fake_repos, vault_calls, frozen_clock):\n+    fake_repos.saved_cards.add(SavedCard(\n+        id=\"card_1\", customer_id=\"cus_1\", vault_token=\"tok_1\", brand=\"visa\", last4=\"4242\",\n+        deleted_at=None, created_at=datetime(2026, 6, 1, tzinfo=UTC),\n+    ))\n+\n+    saved_cards.delete_saved_card(customer_id=\"cus_1\", card_id=\"card_1\")\n+\n+    assert fake_repos.saved_cards.get(\"card_1\").deleted_at == frozen_clock\n+    assert vault_calls == [\"tok_1\"]\n+\n+\n+def test_delete_missing_card_raises(fake_repos, vault_calls):\n+    with pytest.raises(errors.NotFound):\n+        saved_cards.delete_saved_card(customer_id=\"cus_1\", card_id=\"card_missing\")"
+    }
+  ]
+}

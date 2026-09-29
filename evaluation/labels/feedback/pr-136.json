@@ -1,0 +1,70 @@
+{
+  "pr": 136,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "136-F1",
+      "kind": "convention",
+      "convention": "C7",
+      "path": "app/services/reconciliation.py",
+      "line_range": [
+        27,
+        27
+      ],
+      "rationale": "Reads wall-clock time directly instead of app.utils.clock.now() (not freezable in tests).",
+      "expected_fix": "\"generated_at\": clock.now().isoformat()"
+    },
+    {
+      "id": "136-F2",
+      "kind": "convention",
+      "convention": "C9",
+      "path": "migrations/versions/0027_drop_ledger_legacy_ref.py",
+      "line_range": [
+        15,
+        15
+      ],
+      "rationale": "Drops a column in the same PR that changes the code reading it (ADR-008, INC-19).",
+      "expected_fix": "Ship the repo change first; drop legacy_ref in a separate later PR."
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "136-X1",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/services/reconciliation.py",
+      "line_range": [
+        15,
+        15
+      ],
+      "trap": "Wrap the bank call in try/except, log and re-raise with context.",
+      "reject_reason": "Errors propagate to the job runner which logs them, don't add try/log/raise."
+    },
+    {
+      "id": "136-X2",
+      "noise": "N3",
+      "exception": null,
+      "path": "app/services/reconciliation.py",
+      "line_range": [
+        6,
+        6
+      ],
+      "trap": "Import order: app.domain should come before app.repos.",
+      "reject_reason": "ruff handles import order, not a review comment."
+    },
+    {
+      "id": "136-X3",
+      "noise": "N4",
+      "exception": null,
+      "path": "app/services/reconciliation.py",
+      "line_range": [
+        19,
+        19
+      ],
+      "trap": "Use Decimal for the tolerance percentage calculation.",
+      "reject_reason": "We use int cents and apply_bps (ADR-007), no Decimal."
+    }
+  ],
+  "drift_trap": null
+}

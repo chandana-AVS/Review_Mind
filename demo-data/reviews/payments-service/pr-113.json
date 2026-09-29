@@ -1,0 +1,93 @@
+{
+  "pr": 113,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-03-16T13:20:00Z",
+      "body": "Fraud service is flaky under load, see my inline note."
+    },
+    {
+      "reviewer": "alice",
+      "state": "changes_requested",
+      "submitted_at": "2026-03-16T15:02:00Z",
+      "body": "Logic looks right. One blocker: this needs to go through the shared client."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-03-17T16:48:00Z",
+      "body": "Thanks Dan, good to go."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t113-1",
+      "path": "app/clients/fraud.py",
+      "line": 7,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-03-16T14:55:00Z",
+          "body": "Please build this on `make_client(\"fraud\", settings.fraud_base_url)` instead of calling `httpx.post` directly. Module-level httpx calls skip our timeouts, request-id propagation and the http_call metrics, which is exactly what bit us on 02-11. See ADR-006."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-03-16T16:10:00Z",
+          "body": "Ah, I copied this from an old spike. I thought an explicit `timeout=5.0` was enough. Switching now."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-03-16T16:31:00Z",
+          "body": "Timeout is only one of the things the shared client does. Rule of thumb: nothing in app/ constructs its own httpx client or imports requests."
+        }
+      ],
+      "resolution": "applied",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": "4b8a15c61ee116260ac0d282129bf4bc0ff159b6"
+    },
+    {
+      "id": "t113-2",
+      "path": "app/services/charges.py",
+      "line": 25,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-03-16T13:18:00Z",
+          "body": "Wrap this in a tenacity `@retry(stop=stop_after_attempt(5), wait=wait_exponential())`. Every call to an internal service should have retries with backoff, it's basic resilience."
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-03-16T17:02:00Z",
+          "body": "Please no. Once this moves to make_client it already retries connect errors and 502/503/504 twice with jitter. Adding tenacity on top multiplies it: 3 x 5 = 15 attempts per charge. That's exactly how we got INC-12, the retry storm against the card network in February. One retry layer, and it lives in the client."
+        },
+        {
+          "author": "frank",
+          "created_at": "2026-03-17T09:12:00Z",
+          "body": "Fair, I didn't know the shared client retried. Withdrawing."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "bob",
+      "rejection_reason": "make_client() already retries; stacking another retry layer caused the INC-12 retry storm.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t113-3",
+      "path": null,
+      "line": null,
+      "comments": [
+        {
+          "author": "ci-bot",
+          "created_at": "2026-03-16T09:52:00Z",
+          "body": "Coverage report: 91.4% (+0.2%). No new uncovered lines in app/services."
+        }
+      ],
+      "resolution": "noise",
+      "decided_by": null,
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

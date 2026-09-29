@@ -1,0 +1,32 @@
+{
+  "number": 116,
+  "title": "Add /healthz with a database check",
+  "body": "k8s readiness probe currently hits `/docs`, which says nothing about whether we can reach Postgres. `/healthz` runs `SELECT 1`. Probe config change is in the infra repo.",
+  "author": "bob",
+  "created_at": "2026-04-01T13:20:00Z",
+  "merged_at": "2026-04-02T15:00:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "ops"
+  ],
+  "base_sha": "0e451f7fa3bec8c1e9a10cbc330e993f0e576ff4",
+  "head_sha": "e365cf23a11deee6451d2236c6e63b29b24769eb",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/api/health.py",
+      "status": "added",
+      "additions": 14,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,14 @@\n+from fastapi import APIRouter\n+from sqlalchemy import text\n+\n+from app.db import session_scope\n+\n+router = APIRouter(tags=[\"ops\"])\n+\n+\n+@router.get(\"/healthz\")\n+def healthz() -> dict[str, str]:\n+    # ADR-003 exception: operational endpoints check infrastructure directly.\n+    with session_scope() as session:\n+        session.execute(text(\"SELECT 1\"))\n+    return {\"status\": \"ok\"}"
+    },
+    {
+      "path": "docs/adr/ADR-003-service-layer.md",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 0,
+      "patch": "@@ -22,2 +22,4 @@\n ## Consequences\n - Services are unit-testable without the HTTP layer.\n+- Exception: operational endpoints (health, metrics) may touch infrastructure directly — they\n+  exist to test the infrastructure itself. (Added 2026-04-02, see #116.)"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "pr": 120,
+  "threads": {
+    "t120-1": {
+      "convention": null,
+      "noise": null,
+      "mistake": null,
+      "exception": null,
+      "conflict": "K4",
+      "is_convention_signal": true,
+      "expected_strength": "not_a_rule"
+    },
+    "t120-2": {
+      "convention": "C7",
+      "noise": null,
+      "mistake": "M2",
+      "exception": null,
+      "conflict": null,
+      "is_convention_signal": true,
+      "expected_strength": "enforced"
+    }
+  }
+}

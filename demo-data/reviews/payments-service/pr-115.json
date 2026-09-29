@@ -1,0 +1,66 @@
+{
+  "pr": 115,
+  "reviews": [
+    {
+      "reviewer": "frank",
+      "state": "commented",
+      "submitted_at": "2026-03-30T14:10:00Z",
+      "body": "Some thoughts on the model."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-03-31T11:15:00Z",
+      "body": "Looks good."
+    }
+  ],
+  "threads": [
+    {
+      "id": "t115-1",
+      "path": "app/domain/models.py",
+      "line": 52,
+      "comments": [
+        {
+          "author": "frank",
+          "created_at": "2026-03-30T14:05:00Z",
+          "body": "reason_code only has ~20 valid values and amount must be positive. If Dispute were a Pydantic model you'd get that validation for free instead of trusting the caller."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-03-30T15:20:00Z",
+          "body": "I went with a dataclass because of ADR-005, but I don't have a strong opinion. Alice?"
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-03-31T11:10:00Z",
+          "body": "Dataclass is right. Per ADR-005 validation happens once at the edge; here the edge is the notification consumer, which already validates reason codes against the network's enum. We decided this in #109, not reopening it per PR."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "ADR-005: domain types are dataclasses; validation happens at the edge.",
+      "follow_up_commit": null
+    },
+    {
+      "id": "t115-2",
+      "path": "app/services/disputes.py",
+      "line": 14,
+      "comments": [
+        {
+          "author": "alice",
+          "created_at": "2026-03-31T11:12:00Z",
+          "body": "Is 7 days right for all networks? I thought Amex was 10."
+        },
+        {
+          "author": "dan",
+          "created_at": "2026-03-31T13:00:00Z",
+          "body": "It's 7 for Visa/MC which is all we support right now. Added a TODO in the ticket for Amex."
+        }
+      ],
+      "resolution": "discussed",
+      "decided_by": "alice",
+      "rejection_reason": null,
+      "follow_up_commit": null
+    }
+  ]
+}

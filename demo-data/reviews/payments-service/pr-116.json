@@ -1,0 +1,45 @@
+{
+  "pr": 116,
+  "reviews": [
+    {
+      "reviewer": "carol",
+      "state": "commented",
+      "submitted_at": "2026-04-01T16:05:00Z",
+      "body": "Question inline."
+    },
+    {
+      "reviewer": "alice",
+      "state": "approved",
+      "submitted_at": "2026-04-02T10:40:00Z",
+      "body": ""
+    }
+  ],
+  "threads": [
+    {
+      "id": "t116-1",
+      "path": "app/api/health.py",
+      "line": 12,
+      "comments": [
+        {
+          "author": "carol",
+          "created_at": "2026-04-01T16:00:00Z",
+          "body": "Handler opening a session directly: isn't that exactly what ADR-003 says not to do? Should this be a `health` service?"
+        },
+        {
+          "author": "bob",
+          "created_at": "2026-04-01T17:15:00Z",
+          "body": "I went back and forth. A service that just runs SELECT 1 felt like ceremony."
+        },
+        {
+          "author": "alice",
+          "created_at": "2026-04-02T10:35:00Z",
+          "body": "Health and metrics endpoints are the one place where touching infrastructure directly is the point: they exist to check the DB/Redis connection itself. I've added that exception to ADR-003 in this PR so we don't have this discussion every time. Business endpoints still go through services."
+        }
+      ],
+      "resolution": "rejected",
+      "decided_by": "alice",
+      "rejection_reason": "Operational endpoints (health/metrics) are an explicit exception to ADR-003.",
+      "follow_up_commit": null
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "pr": 132,
+  "split": "feedback",
+  "demo": false,
+  "should_flag": [
+    {
+      "id": "132-F1",
+      "kind": "convention",
+      "convention": "C3",
+      "path": "app/jobs/expire_authorizations.py",
+      "line_range": [
+        30,
+        31
+      ],
+      "rationale": "Raw httpx.post instead of a client built on make_client (ADR-006).",
+      "expected_fix": "Add a void call to app/clients/card_network.py using its make_client-based _client."
+    },
+    {
+      "id": "132-F2",
+      "kind": "convention",
+      "convention": "C5",
+      "path": "app/jobs/expire_authorizations.py",
+      "line_range": [
+        25,
+        25
+      ],
+      "rationale": "f-string log message instead of a snake_case event with kwargs.",
+      "expected_fix": "log.info(\"expired_authorizations_voided\", count=len(expired))"
+    }
+  ],
+  "should_not_flag": [
+    {
+      "id": "132-X1",
+      "noise": "N7",
+      "exception": null,
+      "path": "app/jobs/expire_authorizations.py",
+      "line_range": [
+        24,
+        24
+      ],
+      "trap": "Wrap the void + mark_expired in try/except, log the error and re-raise.",
+      "reject_reason": "Let it propagate; the job runner logs failures. try/log/raise just double-logs."
+    },
+    {
+      "id": "132-X2",
+      "noise": "N5",
+      "exception": null,
+      "path": "app/jobs/expire_authorizations.py",
+      "line_range": [
+        22,
+        22
+      ],
+      "trap": "Add retry with backoff around the void call, the network API is flaky.",
+      "reject_reason": "make_client already retries transient errors; another retry layer is how INC-12 happened."
+    },
+    {
+      "id": "132-X3",
+      "noise": "N3",
+      "exception": null,
+      "path": "app/jobs/expire_authorizations.py",
+      "line_range": [
+        5,
+        5
+      ],
+      "trap": "Imports are not sorted (app.utils before app.db).",
+      "reject_reason": "ruff fixes import order in pre-commit, no need to comment on it."
+    }
+  ],
+  "drift_trap": null
+}

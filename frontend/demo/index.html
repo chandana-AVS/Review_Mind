@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReviewMind</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <div class="wordmark">ReviewMind</div>
+        <div class="tagline">Code review that remembers how your team engineers.</div>
+      </div>
+    </div>
+    <div class="pr-title" id="pr-title">Loading…</div>
+    <div class="topbar-right">
+      <div class="bank" title="Hindsight bank used for recall and developer feedback">
+        <span class="label">Bank</span><code id="bank-name">…</code>
+      </div>
+      <div class="status" id="status"><span class="dot"></span><span id="status-text">Connecting to Hindsight…</span></div>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <section class="workspace" aria-label="New review">
+    <div class="ws-left">
+      <span class="ws-label">New review</span>
+      <div class="segmented" role="tablist" id="mode-tabs">
+        <button role="tab" data-mode="dataset" class="active">Dataset PR</button>
+        <button role="tab" data-mode="custom">Try your own code</button>
+      </div>
+      <div class="ws-input" id="dataset-input">
+        <select id="pr-select" aria-label="Pull request"></select>
+      </div>
+      <div class="ws-input" id="custom-input" hidden>
+        <input id="custom-file" value="app/services/fx_quotes.py" aria-label="File name" spellcheck="false">
+      </div>
+      <button class="btn primary" id="run-btn">Run review</button>
+    </div>
+    <ol class="pipeline" id="pipeline" aria-live="polite"></ol>
+  </section>
+
+  <main class="grid">
+    <section class="panel code-panel">
+      <div class="panel-head">
+        <h2 id="code-title">Code under review</h2>
+        <div class="tabs" id="file-tabs"></div>
+        <button class="btn sm" id="edit-btn" hidden>Edit code</button>
+      </div>
+      <div class="code" id="code"></div>
+      <textarea class="editor" id="editor" spellcheck="false" hidden></textarea>
+    </section>
+
+    <section class="panel findings-panel">
+      <div class="panel-head">
+        <h2>Review findings</h2>
+        <div class="segmented small" id="run-tabs" role="tablist"></div>
+        <span class="count" id="finding-count"></span>
+      </div>
+      <div class="run-meta" id="run-meta"></div>
+      <div class="scroll" id="findings-scroll">
+        <div class="notice" id="run-notice" hidden></div>
+        <div id="recall-result"></div>
+        <div id="findings"></div>
+      </div>
+    </section>
+
+    <div class="side">
+      <section class="panel loop-panel">
+        <div class="panel-head"><h2>Learning loop</h2></div>
+        <ol class="timeline" id="timeline">
+          <li data-step="history"><b>Historical memory</b><span>30 PRs · 7 ADRs/docs in Hindsight</span></li>
+          <li data-step="review"><b>Review</b><span>findings backed by recalled memory</span></li>
+          <li data-step="rejected"><b>Developer feedback</b><span>accept or reject with a reason</span></li>
+          <li data-step="retained"><b>Retained in Hindsight</b><span>stored as ReviewMind experience</span></li>
+          <li data-step="future"><b>Future review</b><span>feedback recalled from memory</span></li>
+        </ol>
+        <div class="loop-actions"><button class="btn" id="review-again">Review again with learned memory</button></div>
+      </section>
+      <section class="panel memory-panel">
+        <div class="panel-head"><h2>Hindsight recall</h2><span class="count" id="memory-count"></span></div>
+        <div class="scroll" id="memory"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <form class="modal" id="reject-form">
+      <div class="modal-head">
+        <h3>Reject finding</h3>
+        <button type="button" class="icon-btn" id="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-finding" id="modal-finding"></div>
+      <label for="reason">Why are you rejecting this suggestion?</label>
+      <textarea id="reason" rows="3">Approved exception for this integration.</textarea>
+      <label for="developer">Developer</label>
+      <select id="developer">
+        <option value="erin" selected>Erin</option>
+        <option value="bob">Bob</option>
+        <option value="alice">Alice</option>
+        <option value="carol">Carol</option>
+        <option value="dan">Dan</option>
+      </select>
+      <p class="hint">Stored in <code id="modal-bank"></code> as ReviewMind experience. Hindsight extracts facts from it (usually about a minute; unchanged feedback returns instantly).</p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn danger" id="modal-submit">Submit feedback</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

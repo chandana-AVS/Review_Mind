@@ -1,0 +1,32 @@
+{
+  "number": 115,
+  "title": "Disputes: open a dispute from the card-network notification",
+  "body": "Models disputes (chargebacks) and adds `open_dispute`, called by the card-network notification consumer. Merchants get 7 days to submit evidence.\n\nConsumer wiring and the merchant notification email are the next PR.",
+  "author": "dan",
+  "created_at": "2026-03-30T10:40:00Z",
+  "merged_at": "2026-04-01T09:30:00Z",
+  "state": "merged",
+  "split": "history",
+  "labels": [
+    "disputes"
+  ],
+  "base_sha": "470dcc309b02489f19a40c4b5134384f5ade30f5",
+  "head_sha": "d48efecf82984c4c83cb7aa1b57c19f78b00043c",
+  "adr": null,
+  "files": [
+    {
+      "path": "app/domain/models.py",
+      "status": "modified",
+      "additions": 12,
+      "deletions": 0,
+      "patch": "@@ -46,3 +46,15 @@\n \n     def as_dict(self) -> dict[str, object]:\n         return asdict(self)\n+\n+\n+@dataclass(frozen=True, slots=True)\n+class Dispute:\n+    id: str\n+    charge_id: str\n+    amount_cents: int\n+    currency: str\n+    reason_code: str\n+    status: str\n+    evidence_due_at: datetime\n+    opened_at: datetime"
+    },
+    {
+      "path": "app/services/disputes.py",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0,
+      "patch": "@@ -0,0 +1,37 @@\n+from datetime import timedelta\n+\n+from app import errors\n+from app.db import session_scope\n+from app.domain.models import Dispute\n+from app.repos import charges as charge_repo\n+from app.repos import disputes as dispute_repo\n+from app.utils import clock\n+from app.utils.ids import new_id\n+from app.utils.logging import get_logger\n+\n+log = get_logger(__name__)\n+\n+EVIDENCE_WINDOW = timedelta(days=7)\n+\n+\n+def open_dispute(*, charge_id: str, amount_cents: int, reason_code: str) -> Dispute:\n+    with session_scope() as session:\n+        charge = charge_repo.get(session, charge_id)\n+        if charge is None:\n+            raise errors.NotFound(f\"charge {charge_id} not found\")\n+        if amount_cents > charge.captured_cents:\n+            raise errors.Conflict(\"dispute amount exceeds captured amount\")\n+        opened_at = clock.now()\n+        dispute = Dispute(\n+            id=new_id(\"dp\"),\n+            charge_id=charge_id,\n+            amount_cents=amount_cents,\n+            currency=charge.currency,\n+            reason_code=reason_code,\n+            status=\"needs_response\",\n+            evidence_due_at=opened_at + EVIDENCE_WINDOW,\n+            opened_at=opened_at,\n+        )\n+        dispute_repo.insert(session, dispute)\n+    log.info(\"dispute_opened\", dispute_id=dispute.id, charge_id=charge_id, reason_code=reason_code)\n+    return dispute"
+    }
+  ]
+}
